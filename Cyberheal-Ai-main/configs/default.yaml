@@ -1,0 +1,21 @@
+# default.yaml - Mock Configuration for SHIELD-RCA
+project: "SHIELD-RCA Mock"
+version: "1.0.0"
+
+paths:
+  dataset: "data/mock_dataset.csv"
+  output_dir: "outputs"
+
+agents:
+  sentinel:
+    threshold: 0.85
+    algorithm: "hybrid_change_point"
+  causor:
+    max_depth: 3
+    graph_type: "temporal"
+  planner:
+    strategy: "constrained_remediation"
+  guardian:
+    policy_strictness: "high"
+  scribe:
+    log_level: "INFO"
