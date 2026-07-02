@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useLogs } from '../api';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
 
 export default function LiveMonitoring() {
   const [showToast, setShowToast] = useState(false);
+  const { logs } = useLogs();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -167,54 +169,45 @@ export default function LiveMonitoring() {
 <span className="px-2 py-0.5 bg-error/10 text-error text-[10px] font-bold rounded uppercase">Real-time</span>
 </div>
 <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
-{/*  Event Item  */}
-<div className="p-3 border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-colors">
-<div className="flex justify-between mb-1">
-<span className="font-mono-label text-[11px] text-outline">12:44:02.11</span>
-<span className="px-1.5 py-0.5 bg-error/10 text-error text-[10px] font-bold rounded">HIGH</span>
-</div>
-<div className="font-body-md font-semibold text-on-surface mb-1">SQL Injection Attempt</div>
-<div className="flex justify-between text-label-md text-on-surface-variant">
-<span className="">192.168.1.102</span>
-<span className="text-primary">Blocked</span>
-</div>
-</div>
-{/*  Event Item  */}
-<div className="p-3 border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-colors">
-<div className="flex justify-between mb-1">
-<span className="font-mono-label text-[11px] text-outline">12:43:55.82</span>
-<span className="px-1.5 py-0.5 bg-secondary-container/20 text-secondary text-[10px] font-bold rounded">MED</span>
-</div>
-<div className="font-body-md font-semibold text-on-surface mb-1">Brute Force: admin</div>
-<div className="flex justify-between text-label-md text-on-surface-variant">
-<span className="">45.2.11.233</span>
-<span className="text-primary">Throttled</span>
-</div>
-</div>
-{/*  Event Item  */}
-<div className="p-3 border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-colors border-l-4 border-l-error">
-<div className="flex justify-between mb-1">
-<span className="font-mono-label text-[11px] text-outline">12:43:40.04</span>
-<span className="px-1.5 py-0.5 bg-error text-white text-[10px] font-bold rounded">CRITICAL</span>
-</div>
-<div className="font-body-md font-semibold text-on-surface mb-1">Unauthorized API Call</div>
-<div className="flex justify-between text-label-md text-on-surface-variant">
-<span className="">node-v4.production</span>
-<span className="text-error font-bold">Active</span>
-</div>
-</div>
-{/*  Event Item  */}
-<div className="p-3 border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-colors">
-<div className="flex justify-between mb-1">
-<span className="font-mono-label text-[11px] text-outline">12:43:32.19</span>
-<span className="px-1.5 py-0.5 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded">LOW</span>
-</div>
-<div className="font-body-md font-semibold text-on-surface mb-1">DDoS Mitigation Start</div>
-<div className="flex justify-between text-label-md text-on-surface-variant">
-<span className="">Global Inbound</span>
-<span className="text-tertiary">Monitoring</span>
-</div>
-</div>
+  {logs.slice(0, 10).map((log, idx) => {
+    let severityClass = "bg-surface-container-highest text-on-surface-variant";
+    let borderClass = "";
+    if (log.LevelDisplayName === "Error" || log.LevelDisplayName === "Critical") {
+      severityClass = "bg-error text-white";
+      borderClass = "border-l-4 border-l-error";
+    } else if (log.LevelDisplayName === "Warning") {
+      severityClass = "bg-secondary-container/20 text-secondary";
+      borderClass = "border-l-4 border-l-secondary";
+    }
+
+    let timeStr = '';
+    if (log.TimeCreated) {
+      if (log.TimeCreated.includes('/Date(')) {
+        timeStr = new Date(parseInt(log.TimeCreated.substr(6))).toLocaleTimeString();
+      } else {
+        timeStr = new Date(log.TimeCreated).toLocaleTimeString();
+      }
+    }
+
+    return (
+      <div key={idx} className={`p-3 border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-colors ${borderClass}`}>
+        <div className="flex justify-between mb-1">
+          <span className="font-mono-label text-[11px] text-outline">{timeStr}</span>
+          <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${severityClass} uppercase`}>{log.LevelDisplayName || 'INFO'}</span>
+        </div>
+        <div className="font-body-md font-semibold text-on-surface mb-1 truncate">
+          {log.Message ? (log.Message.length > 50 ? log.Message.substring(0, 50) + '...' : log.Message) : 'System Event'}
+        </div>
+        <div className="flex justify-between text-label-md text-on-surface-variant">
+          <span className="truncate max-w-[150px]">{log.ProviderName || 'System'}</span>
+          <span className={log.LevelDisplayName === 'Error' ? 'text-error font-bold' : 'text-primary'}>Logged</span>
+        </div>
+      </div>
+    );
+  })}
+  {logs.length === 0 && (
+    <div className="text-center text-on-surface-variant p-4">Waiting for live events...</div>
+  )}
 </div>
 <button className="p-3 text-center text-primary font-label-md border-t border-outline-variant/30 hover:bg-surface-container transition-colors">
                         View Historical Logs

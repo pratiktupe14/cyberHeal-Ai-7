@@ -1,8 +1,31 @@
 import React, { useState } from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
+import { useLogs } from '../api';
 
 export default function LogsPortal() {
-  const [selectedLog, setSelectedLog] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const { logs, isConnected } = useLogs();
+
+  const totalLogs = logs.length;
+  const criticalLogs = logs.filter(l => l.LevelDisplayName === 'Error' || l.LevelDisplayName === 'Critical').length;
+  const warningLogs = logs.filter(l => l.LevelDisplayName === 'Warning').length;
+
+  const getLevelStyles = (level) => {
+    if (level === 'Error' || level === 'Critical') {
+      return { colorClass: 'text-error', bgClass: 'bg-error/10' };
+    } else if (level === 'Warning') {
+      return { colorClass: 'text-orange-600', bgClass: 'bg-orange-100' };
+    }
+    return { colorClass: 'text-emerald-600', bgClass: 'bg-emerald-500/10' };
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "Unknown Time";
+    if (timeStr.includes('/Date(')) {
+        return new Date(parseInt(timeStr.substr(6))).toLocaleString();
+    }
+    return new Date(timeStr).toLocaleString();
+  };
 
   return (
     <EnterpriseLayout>
@@ -12,7 +35,7 @@ export default function LogsPortal() {
 {/*  Page Title & Actions  */}
 <div className="flex justify-between items-end mb-stack-lg">
 <div>
-<h2 className="font-headline-lg text-headline-lg text-on-surface mb-1">System Logs</h2>
+<h2 className="font-headline-lg text-headline-lg text-on-surface mb-1">System Logs {isConnected ? '(Live)' : '(Connecting...)'}</h2>
 <p className="font-body-md text-body-md text-on-surface-variant">Real-time comprehensive forensic history and AI agent audit trail.</p>
 </div>
 <div className="flex gap-stack-sm">
@@ -30,15 +53,15 @@ export default function LogsPortal() {
 <div className="grid grid-cols-5 gap-stack-md mb-stack-lg">
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm">
 <p className="text-label-md font-label-md text-on-surface-variant mb-2">Total Logs</p>
-<h3 className="text-headline-md font-headline-md font-bold text-on-surface">1.2M</h3>
+<h3 className="text-headline-md font-headline-md font-bold text-on-surface">{totalLogs}</h3>
 <div className="flex items-center gap-1 mt-2 text-emerald-600 text-label-md font-label-md">
 <span className="material-symbols-outlined text-[14px]" data-icon="trending_up">trending_up</span>
-<span>4.2%</span>
+<span>Live Feed</span>
 </div>
 </div>
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm">
 <p className="text-label-md font-label-md text-on-surface-variant mb-2">Critical Events</p>
-<h3 className="text-headline-md font-headline-md font-bold text-error">42</h3>
+<h3 className="text-headline-md font-headline-md font-bold text-error">{criticalLogs}</h3>
 <div className="flex items-center gap-1 mt-2 text-error text-label-md font-label-md">
 <span className="material-symbols-outlined text-[14px]" data-icon="warning">warning</span>
 <span>Urgent Action</span>
@@ -46,17 +69,17 @@ export default function LogsPortal() {
 </div>
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm">
 <p className="text-label-md font-label-md text-on-surface-variant mb-2">Warnings</p>
-<h3 className="text-headline-md font-headline-md font-bold text-on-secondary-container">128</h3>
+<h3 className="text-headline-md font-headline-md font-bold text-on-secondary-container">{warningLogs}</h3>
 <p className="text-label-md font-label-md text-outline mt-2">Active Monitor</p>
 </div>
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm border-t-2 border-t-secondary-container">
 <p className="text-label-md font-label-md text-on-surface-variant mb-2">AI Agent Activities</p>
-<h3 className="text-headline-md font-headline-md font-bold text-primary">850</h3>
+<h3 className="text-headline-md font-headline-md font-bold text-primary">0</h3>
 <p className="text-label-md font-label-md text-outline mt-2">Autonomous Operations</p>
 </div>
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm">
 <p className="text-label-md font-label-md text-on-surface-variant mb-2">Today's Logs</p>
-<h3 className="text-headline-md font-headline-md font-bold text-on-surface">12.4k</h3>
+<h3 className="text-headline-md font-headline-md font-bold text-on-surface">{totalLogs}</h3>
 <p className="text-label-md font-label-md text-outline mt-2">Retention: 30 days</p>
 </div>
 </div>
@@ -67,7 +90,7 @@ export default function LogsPortal() {
 <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Date Range</label>
 <div className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-lg border border-outline-variant/50">
 <span className="material-symbols-outlined text-[18px] text-outline" data-icon="calendar_today">calendar_today</span>
-<input className="bg-transparent border-none p-0 text-body-md font-body-md w-full focus:ring-0" type="text" value="May 20, 2024 - May 21, 2024" />
+<input className="bg-transparent border-none p-0 text-body-md font-body-md w-full focus:ring-0" type="text" value="Live Feed Active" readOnly />
 </div>
 </div>
 <div>
@@ -93,10 +116,6 @@ export default function LogsPortal() {
 <label className="block text-label-md font-label-md text-on-surface-variant mb-2">Event Type</label>
 <select className="bg-surface-container-low border border-outline-variant/50 rounded-lg py-2 pl-3 pr-8 text-body-md font-body-md focus:ring-2 focus:ring-primary/20">
 <option>All Types</option>
-<option>Brute Force</option>
-<option>DDoS</option>
-<option>Malware Detection</option>
-<option>User Login</option>
 </select>
 </div>
 <div className="pt-6">
@@ -113,7 +132,7 @@ export default function LogsPortal() {
 <tr>
 <th className="px-4 py-3 font-label-md text-label-md text-outline">Timestamp</th>
 <th className="px-4 py-3 font-label-md text-label-md text-outline">ID</th>
-<th className="px-4 py-3 font-label-md text-label-md text-outline">AI Agent</th>
+<th className="px-4 py-3 font-label-md text-label-md text-outline">AI Agent / Provider</th>
 <th className="px-4 py-3 font-label-md text-label-md text-outline">Event Type</th>
 <th className="px-4 py-3 font-label-md text-label-md text-outline">Severity</th>
 <th className="px-4 py-3 font-label-md text-label-md text-outline">Source</th>
@@ -122,120 +141,57 @@ export default function LogsPortal() {
 </tr>
 </thead>
 <tbody className="divide-y divide-outline-variant/20">
-{/*  Row 1 (Active)  */}
-<tr className="hover:bg-surface-container transition-colors bg-primary/5 cursor-pointer" onClick={() => setSelectedLog(true)}>
-<td className="px-4 py-4 font-mono-label text-mono-label">2024-05-20 14:22:01.442</td>
-<td className="px-4 py-4 font-body-md text-body-md font-semibold text-primary">LX-9042</td>
-<td className="px-4 py-4 font-body-md text-body-md">
-<span className="flex items-center gap-2">
-<span className="w-2 h-2 rounded-full bg-primary"></span>
-                                Sentinel
-                            </span>
-</td>
-<td className="px-4 py-4 font-body-md text-body-md">Brute Force Detection</td>
-<td className="px-4 py-4">
-<span className="px-2 py-1 rounded bg-error/10 text-error font-label-md text-[11px] font-bold uppercase tracking-wider">Critical</span>
-</td>
-<td className="px-4 py-4 font-mono-label text-mono-label">192.168.1.14</td>
-<td className="px-4 py-4">
-<span className="flex items-center gap-2 text-emerald-600 font-label-md text-label-md">
-<span className="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
-                                Mitigated
-                            </span>
-</td>
-<td className="px-4 py-4 text-right">
-<button className="px-3 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-md font-label-md text-label-md transition-all">View Details</button>
-</td>
-</tr>
-{/*  Row 2  */}
-<tr className="hover:bg-surface-container transition-colors cursor-pointer" onClick={() => setSelectedLog(true)}>
-<td className="px-4 py-4 font-mono-label text-mono-label">2024-05-20 14:18:45.102</td>
-<td className="px-4 py-4 font-body-md text-body-md font-semibold">LX-9041</td>
-<td className="px-4 py-4 font-body-md text-body-md">
-<span className="flex items-center gap-2">
-<span className="w-2 h-2 rounded-full bg-secondary"></span>
-                                Guardian
-                            </span>
-</td>
-<td className="px-4 py-4 font-body-md text-body-md">Policy Update</td>
-<td className="px-4 py-4">
-<span className="px-2 py-1 rounded bg-on-surface-variant/10 text-on-surface-variant font-label-md text-[11px] font-bold uppercase tracking-wider">Info</span>
-</td>
-<td className="px-4 py-4 font-mono-label text-mono-label">System Admin</td>
-<td className="px-4 py-4">
-<span className="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
-<span className="material-symbols-outlined text-[16px]" data-icon="check">check</span>
-                                Success
-                            </span>
-</td>
-<td className="px-4 py-4 text-right">
-<button className="px-3 py-1 bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest rounded-md font-label-md text-label-md transition-all">View Details</button>
-</td>
-</tr>
-{/*  Row 3  */}
-<tr className="hover:bg-surface-container transition-colors cursor-pointer" onClick={() => setSelectedLog(true)}>
-<td className="px-4 py-4 font-mono-label text-mono-label">2024-05-20 14:15:22.881</td>
-<td className="px-4 py-4 font-body-md text-body-md font-semibold">LX-9040</td>
-<td className="px-4 py-4 font-body-md text-body-md">
-<span className="flex items-center gap-2">
-<span className="w-2 h-2 rounded-full bg-tertiary"></span>
-                                Causor
-                            </span>
-</td>
-<td className="px-4 py-4 font-body-md text-body-md">DDoS Pattern Observed</td>
-<td className="px-4 py-4">
-<span className="px-2 py-1 rounded bg-orange-100 text-orange-600 font-label-md text-[11px] font-bold uppercase tracking-wider">High</span>
-</td>
-<td className="px-4 py-4 font-mono-label text-mono-label">88.102.4.52</td>
-<td className="px-4 py-4">
-<span className="flex items-center gap-2 text-orange-600 font-label-md text-label-md">
-<span className="material-symbols-outlined text-[16px]" data-icon="monitoring">monitoring</span>
-                                Under Review
-                            </span>
-</td>
-<td className="px-4 py-4 text-right">
-<button className="px-3 py-1 bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest rounded-md font-label-md text-label-md transition-all">View Details</button>
-</td>
-</tr>
-{/*  Row 4  */}
-<tr className="hover:bg-surface-container transition-colors cursor-pointer" onClick={() => setSelectedLog(true)}>
-<td className="px-4 py-4 font-mono-label text-mono-label">2024-05-20 14:12:00.003</td>
-<td className="px-4 py-4 font-body-md text-body-md font-semibold">LX-9039</td>
-<td className="px-4 py-4 font-body-md text-body-md">
-<span className="flex items-center gap-2">
-<span className="w-2 h-2 rounded-full bg-primary"></span>
-                                Sentinel
-                            </span>
-</td>
-<td className="px-4 py-4 font-body-md text-body-md">SSH Unauthorized Access</td>
-<td className="px-4 py-4">
-<span className="px-2 py-1 rounded bg-error/10 text-error font-label-md text-[11px] font-bold uppercase tracking-wider">Critical</span>
-</td>
-<td className="px-4 py-4 font-mono-label text-mono-label">10.0.42.11</td>
-<td className="px-4 py-4">
-<span className="flex items-center gap-2 text-emerald-600 font-label-md text-label-md">
-<span className="material-symbols-outlined text-[16px]" data-icon="block">block</span>
-                                Blocked
-                            </span>
-</td>
-<td className="px-4 py-4 text-right">
-<button className="px-3 py-1 bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest rounded-md font-label-md text-label-md transition-all">View Details</button>
-</td>
-</tr>
+  {logs.map((log, index) => {
+    const { bgClass, colorClass } = getLevelStyles(log.LevelDisplayName);
+    return (
+      <tr key={index} className="hover:bg-surface-container transition-colors cursor-pointer" onClick={() => setSelectedLog(log)}>
+        <td className="px-4 py-4 font-mono-label text-mono-label">{formatTime(log.TimeCreated)}</td>
+        <td className="px-4 py-4 font-body-md text-body-md font-semibold text-primary">{log.Id || 'N/A'}</td>
+        <td className="px-4 py-4 font-body-md text-body-md">
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary"></span>
+            {log.ProviderName || 'System'}
+          </span>
+        </td>
+        <td className="px-4 py-4 font-body-md text-body-md">
+          {log.Message ? (log.Message.length > 50 ? log.Message.substring(0, 50) + "..." : log.Message) : "Unknown Event"}
+        </td>
+        <td className="px-4 py-4">
+          <span className={`px-2 py-1 rounded ${bgClass} ${colorClass} font-label-md text-[11px] font-bold uppercase tracking-wider`}>
+            {log.LevelDisplayName || 'Info'}
+          </span>
+        </td>
+        <td className="px-4 py-4 font-mono-label text-mono-label">Local System</td>
+        <td className="px-4 py-4">
+          <span className="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
+            <span className="material-symbols-outlined text-[16px]" data-icon="check">check</span>
+            Logged
+          </span>
+        </td>
+        <td className="px-4 py-4 text-right">
+          <button className="px-3 py-1 bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest rounded-md font-label-md text-label-md transition-all">View Details</button>
+        </td>
+      </tr>
+    );
+  })}
+  {logs.length === 0 && (
+    <tr>
+      <td colSpan="8" className="px-4 py-8 text-center text-on-surface-variant font-body-md">
+        No logs found. Connection status: {isConnected ? 'Connected' : 'Disconnected'}
+      </td>
+    </tr>
+  )}
 </tbody>
 </table>
 {/*  Pagination  */}
 <div className="bg-surface-container-low px-4 py-3 flex items-center justify-between border-t border-outline-variant/30">
-<p className="text-label-md font-label-md text-outline">Showing 1 to 10 of 1.2M logs</p>
+<p className="text-label-md font-label-md text-outline">Showing live logs ({logs.length})</p>
 <div className="flex gap-2">
-<button className="p-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-all">
+<button className="p-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-all" disabled>
 <span className="material-symbols-outlined text-[18px]" data-icon="chevron_left">chevron_left</span>
 </button>
 <button className="px-3 py-1 bg-primary text-white rounded-lg font-label-md text-label-md">1</button>
-<button className="px-3 py-1 bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-all font-label-md text-label-md">2</button>
-<button className="px-3 py-1 bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-all font-label-md text-label-md">3</button>
-<span className="px-2">...</span>
-<button className="p-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-all">
+<button className="p-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-all" disabled>
 <span className="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span>
 </button>
 </div>
@@ -250,11 +206,13 @@ export default function LogsPortal() {
 {/*  Panel Header  */}
 <div className="p-stack-md border-b border-outline-variant/30">
 <div className="flex justify-between items-start mb-2">
-<span className="px-2 py-0.5 rounded bg-error/10 text-error font-label-md text-[10px] font-bold uppercase">Critical Alert</span>
-<button className="material-symbols-outlined text-outline hover:text-on-surface" data-icon="close" onClick={() => setSelectedLog(false)}>close</button>
+<span className={`px-2 py-0.5 rounded ${getLevelStyles(selectedLog.LevelDisplayName).bgClass} ${getLevelStyles(selectedLog.LevelDisplayName).colorClass} font-label-md text-[10px] font-bold uppercase`}>
+  {selectedLog.LevelDisplayName || 'Info'}
+</span>
+<button className="material-symbols-outlined text-outline hover:text-on-surface" data-icon="close" onClick={() => setSelectedLog(null)}>close</button>
 </div>
-<h3 className="font-headline-sm text-headline-sm text-on-surface">Log ID: LX-9042</h3>
-<p className="text-body-md font-body-md text-on-surface-variant mt-1">Brute Force Detection on Main SSH Gateway</p>
+<h3 className="font-headline-sm text-headline-sm text-on-surface">Log ID: {selectedLog.Id || 'N/A'}</h3>
+<p className="text-body-md font-body-md text-on-surface-variant mt-1">Provider: {selectedLog.ProviderName}</p>
 </div>
 {/*  Scrollable Details  */}
 <div className="flex-1 overflow-y-auto p-stack-md custom-scrollbar">
@@ -263,21 +221,17 @@ export default function LogsPortal() {
 <div>
 <h4 className="text-label-md font-label-md font-bold uppercase tracking-widest text-outline mb-3">Core Metadata</h4>
 <div className="grid grid-cols-2 gap-3">
-<div className="p-3 bg-surface-container-low rounded-lg">
-<p className="text-[10px] font-bold text-outline uppercase mb-1">Incident Link</p>
-<p className="text-body-md font-semibold text-primary">INC-4022</p>
+<div className="p-3 bg-surface-container-low rounded-lg col-span-2">
+<p className="text-[10px] font-bold text-outline uppercase mb-1">Message</p>
+<p className="text-body-md font-semibold text-primary">{selectedLog.Message || 'No Message'}</p>
 </div>
 <div className="p-3 bg-surface-container-low rounded-lg">
-<p className="text-[10px] font-bold text-outline uppercase mb-1">Source IP</p>
-<p className="text-body-md font-mono-label">192.168.1.14</p>
+<p className="text-[10px] font-bold text-outline uppercase mb-1">Source</p>
+<p className="text-body-md font-mono-label">Local System</p>
 </div>
 <div className="p-3 bg-surface-container-low rounded-lg">
-<p className="text-[10px] font-bold text-outline uppercase mb-1">Dest Port</p>
-<p className="text-body-md font-mono-label">22 (SSH)</p>
-</div>
-<div className="p-3 bg-surface-container-low rounded-lg">
-<p className="text-[10px] font-bold text-outline uppercase mb-1">Retries</p>
-<p className="text-body-md font-semibold">142/min</p>
+<p className="text-[10px] font-bold text-outline uppercase mb-1">Time</p>
+<p className="text-body-md font-mono-label">{formatTime(selectedLog.TimeCreated)}</p>
 </div>
 </div>
 </div>
@@ -287,30 +241,10 @@ export default function LogsPortal() {
 <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-outline-variant/30">
 <div className="relative">
 <div className="absolute -left-[24px] top-1.5 w-3 h-3 rounded-full bg-primary ring-4 ring-primary/10"></div>
-<p className="text-label-md font-label-md font-bold">14:22:01.442 - Detection</p>
-<p className="text-body-md text-on-surface-variant">Sentinel flagged anomalous login volume from single source.</p>
-</div>
-<div className="relative">
-<div className="absolute -left-[24px] top-1.5 w-3 h-3 rounded-full bg-secondary ring-4 ring-secondary/10"></div>
-<p className="text-label-md font-label-md font-bold">14:22:03.110 - RCA</p>
-<p className="text-body-md text-on-surface-variant">Causor identified malicious intent via fingerprinting.</p>
-</div>
-<div className="relative">
-<div className="absolute -left-[24px] top-1.5 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/10"></div>
-<p className="text-label-md font-label-md font-bold">14:22:05.892 - Remediation</p>
-<p className="text-body-md text-on-surface-variant">Guardian applied temporary firewall drop to source IP.</p>
+<p className="text-label-md font-label-md font-bold">{formatTime(selectedLog.TimeCreated)}</p>
+<p className="text-body-md text-on-surface-variant">Event Generated by Windows Event Log.</p>
 </div>
 </div>
-</div>
-{/*  AI Decision Log  */}
-<div className="p-stack-md bg-primary/5 border border-primary/10 rounded-xl">
-<div className="flex items-center gap-2 mb-3">
-<span className="material-symbols-outlined text-primary text-[20px]" data-icon="psychology">psychology</span>
-<h4 className="text-label-md font-label-md font-bold uppercase tracking-widest text-primary">AI Decision Log</h4>
-</div>
-<p className="text-body-md font-body-md italic text-on-surface-variant leading-relaxed">
-                        "Sentinel detected pattern, Causor confirmed intent, Guardian applied block. Threat severity categorized as 'High' based on previous lateral movement attempts from similar subnets."
-                    </p>
 </div>
 {/*  Audit Trail  */}
 <div>
@@ -318,15 +252,11 @@ export default function LogsPortal() {
 <div className="space-y-3">
 <div className="flex justify-between items-center text-body-md border-b border-outline-variant/10 pb-2">
 <span className="text-on-surface-variant">Viewed by</span>
-<span className="font-semibold">Admin (A. Chen)</span>
-</div>
-<div className="flex justify-between items-center text-body-md border-b border-outline-variant/10 pb-2">
-<span className="text-on-surface-variant">Modified at</span>
-<span className="font-semibold">N/A</span>
+<span className="font-semibold">Current User</span>
 </div>
 <div className="flex justify-between items-center text-body-md">
-<span className="text-on-surface-variant">Policy Trigger</span>
-<span className="font-semibold text-secondary">Global-SSH-04</span>
+<span className="text-on-surface-variant">System</span>
+<span className="font-semibold text-secondary">CyberHeal Live Feeds</span>
 </div>
 </div>
 </div>
@@ -335,7 +265,6 @@ export default function LogsPortal() {
 {/*  Panel Footer  */}
 <div className="p-stack-md bg-surface-container-low flex gap-2">
 <button className="flex-1 py-2 bg-primary text-white rounded-lg font-label-md text-label-md font-bold">Acknowledge</button>
-<button className="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg font-label-md text-label-md">Investigate</button>
 </div>
 </aside>
       )}
