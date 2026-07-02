@@ -29,7 +29,7 @@ export default function EnterpriseLayout({ children }) {
 <span className="material-symbols-outlined" data-icon="security">security</span>
 <span className="font-body-md text-body-md">Incidents</span>
 </Link>
-<Link className={getLinkClasses('/monitoring')} to="#">
+<Link className={getLinkClasses('/monitoring')} to="/monitoring">
 <span className="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
 <span className="font-body-md text-body-md">Live Monitoring</span>
 </Link>
