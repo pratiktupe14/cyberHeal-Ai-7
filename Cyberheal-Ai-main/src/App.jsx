@@ -1,8 +1,17 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
+import Dashboard from './pages/Dashboard'
+import LogsPortal from './pages/LogsPortal'
 
 function App() {
   return (
-    <LandingPage />
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/logs" element={<LogsPortal />} />
+      </Routes>
+    </Router>
   )
 }
 
