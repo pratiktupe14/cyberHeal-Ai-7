@@ -24,7 +24,7 @@ export default function EnterpriseLayout({ children }) {
 <span className="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
 <span className="font-body-md text-body-md">Live Monitoring</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="#">
+<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="/agents">
 <span className="material-symbols-outlined" data-icon="psychology">psychology</span>
 <span className="font-body-md text-body-md">AI Agents</span>
 </Link>
