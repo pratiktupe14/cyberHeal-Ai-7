@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import LogsPortal from './pages/LogsPortal'
 import AiAgents from './pages/AiAgents'
+import ThreatAnalytics from './pages/ThreatAnalytics'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/logs" element={<LogsPortal />} />
         <Route path="/agents" element={<AiAgents />} />
+        <Route path="/analytics" element={<ThreatAnalytics />} />
       </Routes>
     </Router>
   )

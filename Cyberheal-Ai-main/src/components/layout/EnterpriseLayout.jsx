@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function EnterpriseLayout({ children }) {
+  const location = useLocation();
+  const isActive = (path) => location.pathname === path;
+  
+  const getLinkClasses = (path) => {
+    if (isActive(path)) {
+      return "flex items-center gap-3 px-4 py-3 rounded-lg text-primary font-bold border-r-4 border-primary bg-primary/5 transition-all";
+    }
+    return "flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors";
+  };
   return (
     <div className="bg-background text-on-surface font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
       <aside className="fixed left-0 top-0 h-full w-[260px] hidden md:flex flex-col bg-surface/80 backdrop-blur-md shadow-sm z-50 transition-all border-r border-outline-variant/30">
@@ -12,27 +21,27 @@ export default function EnterpriseLayout({ children }) {
 </div>
 <nav className="flex-1 px-4 space-y-1">
 {/* Dashboard Active */}
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-primary font-bold border-r-4 border-primary bg-primary/5 transition-all" to="/dashboard">
+<Link className={getLinkClasses('/dashboard')} to="/dashboard">
 <span className="material-symbols-outlined" data-icon="dashboard">dashboard</span>
 <span className="font-body-md text-body-md">Dashboard</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="/logs">
+<Link className={getLinkClasses('/logs')} to="/logs">
 <span className="material-symbols-outlined" data-icon="security">security</span>
 <span className="font-body-md text-body-md">Incidents</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="#">
+<Link className={getLinkClasses('/monitoring')} to="#">
 <span className="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
 <span className="font-body-md text-body-md">Live Monitoring</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="/agents">
+<Link className={getLinkClasses('/agents')} to="/agents">
 <span className="material-symbols-outlined" data-icon="psychology">psychology</span>
 <span className="font-body-md text-body-md">AI Agents</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="#">
+<Link className={getLinkClasses('/analytics')} to="/analytics">
 <span className="material-symbols-outlined" data-icon="analytics">analytics</span>
 <span className="font-body-md text-body-md">Threat Analytics</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="#">
+<Link className={getLinkClasses('/logs-portal')} to="#">
 <span className="material-symbols-outlined" data-icon="list_alt">list_alt</span>
 <span className="font-body-md text-body-md">Logs</span>
 </Link>

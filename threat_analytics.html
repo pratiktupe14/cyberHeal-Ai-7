@@ -1,0 +1,545 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Threat Analytics | CyberHeal AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chart-container { position: relative; height: 100%; width: 100%; }
+        /* Custom scrollbar for data-rich areas */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e0e3e5; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c3c6d7; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed-dim": "#b4c5ff",
+                      "error": "#ba1a1a",
+                      "on-error-container": "#93000a",
+                      "on-secondary-fixed-variant": "#004e5c",
+                      "on-primary-fixed": "#00174b",
+                      "on-tertiary-container": "#bdffdb",
+                      "outline": "#737686",
+                      "on-error": "#ffffff",
+                      "primary-fixed": "#dbe1ff",
+                      "surface": "#f7f9fb",
+                      "primary-container": "#2563eb",
+                      "outline-variant": "#c3c6d7",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "background": "#f7f9fb",
+                      "inverse-on-surface": "#eff1f3",
+                      "inverse-primary": "#b4c5ff",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface-tint": "#0053db",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-fixed": "#acedff",
+                      "primary": "#004ac6",
+                      "tertiary-container": "#007d55",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-secondary-container": "#006172",
+                      "tertiary": "#006242",
+                      "surface-container": "#eceef0",
+                      "on-tertiary": "#ffffff",
+                      "secondary-container": "#57dffe",
+                      "error-container": "#ffdad6",
+                      "on-background": "#191c1e",
+                      "on-primary-container": "#eeefff",
+                      "surface-container-high": "#e6e8ea",
+                      "tertiary-fixed": "#6ffbbe",
+                      "secondary": "#00687a",
+                      "on-surface-variant": "#434655",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-variant": "#e0e3e5",
+                      "on-secondary-fixed": "#001f26",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-surface": "#2d3133",
+                      "surface-dim": "#d8dadc",
+                      "on-secondary": "#ffffff",
+                      "secondary-fixed-dim": "#4cd7f6",
+                      "on-tertiary-fixed": "#002113",
+                      "on-surface": "#191c1e",
+                      "surface-container-low": "#f2f4f6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-max": "1440px",
+                      "stack-sm": "8px",
+                      "margin-desktop": "32px",
+                      "gutter": "24px",
+                      "unit": "4px",
+                      "stack-lg": "32px",
+                      "margin-mobile": "16px",
+                      "stack-md": "16px"
+              },
+              "fontFamily": {
+                      "display-lg": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "mono-label": ["JetBrains Mono"],
+                      "headline-sm": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                      "mono-label": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                      "headline-sm": ["18px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full w-[260px] hidden md:flex flex-col bg-surface/80 backdrop-blur-md shadow-sm z-50 overflow-y-auto">
+<div class="px-6 py-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">CyberHeal AI</h1>
+<p class="text-on-surface-variant font-label-md text-label-md mt-1">V2.0 Enterprise</p>
+</div>
+<nav class="flex flex-col gap-unit px-4 flex-grow">
+<!-- Dashboard -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<!-- Incidents -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="security">security</span>
+<span class="font-body-md text-body-md">Incidents</span>
+</a>
+<!-- Live Monitoring -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="monitor_heart">monitor_heart</span>
+<span class="font-body-md text-body-md">Live Monitoring</span>
+</a>
+<!-- AI Agents -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="psychology">psychology</span>
+<span class="font-body-md text-body-md">AI Agents</span>
+</a>
+<!-- Threat Analytics (Active) -->
+<a class="flex items-center gap-3 px-4 py-3 text-primary font-bold border-r-4 border-primary bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-body-md text-body-md">Threat Analytics</span>
+</a>
+<!-- Logs -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="list_alt">list_alt</span>
+<span class="font-body-md text-body-md">Logs</span>
+</a>
+<!-- Reports -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="description">description</span>
+<span class="font-body-md text-body-md">Reports</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="p-6 mt-auto">
+<div class="bg-primary/10 rounded-xl p-4">
+<p class="font-label-md text-label-md text-primary font-bold">System Status: Active</p>
+<div class="mt-2 h-1 w-full bg-outline-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[94%]"></div>
+</div>
+<p class="text-[10px] text-on-surface-variant mt-2">Node Performance: 94%</p>
+</div>
+</div>
+</aside>
+<!-- Top Navigation -->
+<header class="sticky top-0 w-full z-40 bg-surface/80 backdrop-blur-md border-b border-outline-variant shadow-sm ml-0 md:ml-[260px] max-w-[calc(100%-260px)]">
+<div class="flex justify-between items-center h-16 px-margin-mobile md:px-margin-desktop">
+<div class="flex items-center gap-4 flex-grow">
+<div class="relative w-full max-w-md group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-body-md focus:ring-2 focus:ring-primary transition-all" placeholder="Search threats, agents, or logs..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-surface-container rounded-full transition-all relative">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
+</button>
+<button class="p-2 hover:bg-surface-container rounded-full transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="help">help</span>
+</button>
+<button class="p-2 hover:bg-surface-container rounded-full transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="apps">apps</span>
+</button>
+<div class="flex items-center gap-3 ml-2 pl-4 border-l border-outline-variant">
+<div class="text-right hidden sm:block">
+<p class="text-body-md font-bold leading-none">Admin User</p>
+<p class="text-label-md text-on-surface-variant">Security Lead</p>
+</div>
+<img class="w-10 h-10 rounded-full border border-outline-variant object-cover" data-alt="A professional headshot of a cybersecurity specialist, a man in a modern workspace, soft lighting from a monitor, enterprise security atmosphere, highly detailed, corporate modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPtw_6lnQMnjLdRPRJKZZa3ApclwhlQ-ZeRKgefp31qcGrdZgYwJ86Cx5yFiWq9c2OXQSMZCQuLC1WlEPGYrULmg4CpZkLeg_xN8ZAUAjYmClq6towK1BSQPjM9I7Lu9c-ZaatEkzRup1iPjCnQ7e4jno_fruJloszFC_W4gWPzHut9BC16rg0luALn-HUG21imfWPoPDyAE-wvzWAHe-VBswDYOvYOS5NWntIuDkW8caomGdGG87A">
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-0 md:ml-[260px] p-margin-mobile md:p-margin-desktop space-y-stack-lg max-w-[1440px]">
+<!-- Dashboard Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Threat Analytics</h2>
+<p class="text-body-lg text-on-surface-variant mt-2">Real-time vector analysis and predictive anomaly detection across enterprise nodes.</p>
+</div>
+<div class="flex items-center gap-stack-sm">
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg flex items-center gap-2 text-body-md font-medium hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined text-[20px]" data-icon="calendar_today">calendar_today</span>
+                    Last 30 Days
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg flex items-center gap-2 text-body-md font-medium shadow-sm hover:translate-y-[-1px] transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="file_download">file_download</span>
+                    Export Report
+                </button>
+</div>
+</div>
+<!-- Accuracy Cards (Hero Stats) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Detection Accuracy -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9] relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md text-on-surface-variant font-medium">Detection Accuracy</p>
+<h3 class="text-display-lg font-display-lg text-primary mt-2">99.8%</h3>
+</div>
+<span class="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg" data-icon="target">target</span>
+</div>
+<div class="mt-4 flex items-center gap-2 text-label-md text-tertiary">
+<span class="material-symbols-outlined text-[16px]" data-icon="trending_up">trending_up</span>
+<span>+0.2% vs last week</span>
+</div>
+</div>
+<!-- Mean Time to Respond -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9] relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md text-on-surface-variant font-medium">Mean Response Time</p>
+<h3 class="text-display-lg font-display-lg text-secondary mt-2">12.4<span class="text-headline-sm font-medium">min</span></h3>
+</div>
+<span class="material-symbols-outlined text-secondary bg-secondary/10 p-2 rounded-lg" data-icon="timer">timer</span>
+</div>
+<div class="mt-4 flex items-center gap-2 text-label-md text-tertiary">
+<span class="material-symbols-outlined text-[16px]" data-icon="trending_down">trending_down</span>
+<span>-4min faster than baseline</span>
+</div>
+</div>
+<!-- False Positive Rate -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9] relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-error"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md text-on-surface-variant font-medium">False Positive Rate</p>
+<h3 class="text-display-lg font-display-lg text-error mt-2">1.02%</h3>
+</div>
+<span class="material-symbols-outlined text-error bg-error/10 p-2 rounded-lg" data-icon="error_outline">error_outline</span>
+</div>
+<div class="mt-4 flex items-center gap-2 text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="horizontal_rule">horizontal_rule</span>
+<span>Within acceptable limits</span>
+</div>
+</div>
+<!-- Agents Active -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9] relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-tertiary"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md text-on-surface-variant font-medium">AI Agents Active</p>
+<h3 class="text-display-lg font-display-lg text-tertiary mt-2">4,821</h3>
+</div>
+<span class="material-symbols-outlined text-tertiary bg-tertiary/10 p-2 rounded-lg" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="mt-4 flex items-center gap-2 text-label-md text-tertiary">
+<span class="material-symbols-outlined text-[16px]" data-icon="trending_up">trending_up</span>
+<span>+12 new nodes added</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Charts -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Main Line Chart: Threats Over Time -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-lowest p-stack-lg rounded-xl shadow-sm border border-[#F1F5F9]">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Threats Over Time</h4>
+<p class="text-body-md text-on-surface-variant">Aggregated incident frequency across all channels.</p>
+</div>
+<div class="flex gap-2">
+<span class="inline-flex items-center gap-2 text-label-md text-on-surface-variant">
+<span class="w-3 h-3 rounded-full bg-primary"></span> Ransomware
+                        </span>
+<span class="inline-flex items-center gap-2 text-label-md text-on-surface-variant">
+<span class="w-3 h-3 rounded-full bg-secondary"></span> Phishing
+                        </span>
+</div>
+</div>
+<div class="h-[300px]">
+<canvas id="threatsLineChart"></canvas>
+</div>
+</div>
+<!-- AI Insight Panel -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-gutter">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9] border-t-2 border-t-secondary-container flex-grow">
+<div class="flex items-center gap-2 text-secondary mb-4">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-headline-sm text-headline-sm">AI Pulse Insights</span>
+</div>
+<p class="text-body-md text-on-surface-variant leading-relaxed">
+                        Anomalous traffic detected in <span class="font-bold text-on-surface">Cluster 7-Beta</span>. Pattern correlates with historical Zero-Day attempts in the Q3 window. 
+                    </p>
+<div class="mt-4 p-3 bg-secondary/5 rounded-lg border border-secondary/10">
+<p class="text-label-md font-bold text-secondary">RECOMMENDATION</p>
+<p class="text-body-md mt-1 italic">"Initiate sandbox isolation for all incoming API calls from Regional Node AX-4."</p>
+</div>
+<button class="mt-6 w-full py-2 bg-secondary text-on-secondary rounded-lg font-medium text-body-md hover:bg-on-secondary-container transition-all">
+                        Execute Automated Response
+                    </button>
+</div>
+<!-- Small Severity Pie Chart -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9]">
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-4">Severity Distribution</h4>
+<div class="h-[180px] flex items-center justify-center">
+<canvas id="severityPieChart"></canvas>
+</div>
+<div class="mt-4 grid grid-cols-2 gap-2">
+<div class="flex items-center gap-2 text-label-md">
+<span class="w-2 h-2 rounded-full bg-error"></span> Critical (12%)
+                        </div>
+<div class="flex items-center gap-2 text-label-md">
+<span class="w-2 h-2 rounded-full bg-primary"></span> High (28%)
+                        </div>
+<div class="flex items-center gap-2 text-label-md">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Medium (45%)
+                        </div>
+<div class="flex items-center gap-2 text-label-md">
+<span class="w-2 h-2 rounded-full bg-outline-variant"></span> Low (15%)
+                        </div>
+</div>
+</div>
+</div>
+<!-- Bottom Row Charts -->
+<!-- Threats by Attack Type (Bar) -->
+<div class="col-span-12 lg:col-span-7 bg-surface-container-lowest p-stack-lg rounded-xl shadow-sm border border-[#F1F5F9]">
+<div class="flex justify-between items-center mb-6">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Common Attack Vectors</h4>
+<button class="text-primary text-label-md font-bold hover:underline">View All vectors</button>
+</div>
+<div class="h-[240px]">
+<canvas id="attackTypeBarChart"></canvas>
+</div>
+</div>
+<!-- Recent Alerts List -->
+<div class="col-span-12 lg:col-span-5 bg-surface-container-lowest p-stack-lg rounded-xl shadow-sm border border-[#F1F5F9]">
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-6">Live Threat Feed</h4>
+<div class="space-y-4 max-h-[240px] overflow-y-auto pr-2">
+<!-- Feed Item 1 -->
+<div class="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30 hover:border-primary/50 transition-all cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-error animate-pulse"></div>
+<div class="flex-grow">
+<p class="text-body-md font-bold">Brute-force SSH Attempt</p>
+<p class="text-label-md text-on-surface-variant">IP: 192.168.1.104 • Just now</p>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Feed Item 2 -->
+<div class="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="flex-grow">
+<p class="text-body-md font-bold">SQL Injection Blocked</p>
+<p class="text-label-md text-on-surface-variant">Main Database Cluster • 4m ago</p>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Feed Item 3 -->
+<div class="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="flex-grow">
+<p class="text-body-md font-bold">Unusual Geo-login</p>
+<p class="text-label-md text-on-surface-variant">User: j_smith_dev • 12m ago</p>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Feed Item 4 -->
+<div class="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="flex-grow">
+<p class="text-body-md font-bold">API Rate Limit Warning</p>
+<p class="text-label-md text-on-surface-variant">External API Gateway • 28m ago</p>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Toasts -->
+<div class="fixed bottom-8 right-8 bg-surface-container-lowest border-l-4 border-primary shadow-xl rounded-lg p-4 flex items-center gap-4 translate-y-20 transition-all duration-300 opacity-0 z-[60]" id="notification-toast">
+<div class="bg-primary/10 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary" data-icon="info">info</span>
+</div>
+<div>
+<p class="font-bold text-body-md">Dashboard Synchronized</p>
+<p class="text-label-md text-on-surface-variant">All threat vectors are up to date.</p>
+</div>
+<button class="ml-4 text-on-surface-variant hover:text-primary" onclick="hideToast()">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<script>
+        // --- CHARTS CONFIGURATION ---
+        
+        // Helper for Chart colors
+        const colors = {
+            primary: '#004ac6',
+            secondary: '#00687a',
+            tertiary: '#006242',
+            error: '#ba1a1a',
+            surface: '#f7f9fb',
+            outline: '#c3c6d7'
+        };
+
+        // Line Chart
+        const lineCtx = document.getElementById('threatsLineChart').getContext('2d');
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+                datasets: [{
+                    label: 'Ransomware',
+                    data: [12, 19, 15, 25, 22, 30, 24, 28],
+                    borderColor: colors.primary,
+                    backgroundColor: 'rgba(0, 74, 198, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }, {
+                    label: 'Phishing',
+                    data: [45, 52, 38, 48, 60, 55, 42, 50],
+                    borderColor: colors.secondary,
+                    backgroundColor: 'rgba(0, 104, 122, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { borderDash: [5, 5] }, ticks: { font: { size: 11 } } },
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+
+        // Pie Chart
+        const pieCtx = document.getElementById('severityPieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [12, 28, 45, 15],
+                    backgroundColor: [colors.error, colors.primary, colors.secondary, colors.outline],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Bar Chart
+        const barCtx = document.getElementById('attackTypeBarChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['DDoS', 'Malware', 'Social Eng.', 'MITM', 'Zero Day', 'Credential Stuffing'],
+                datasets: [{
+                    label: 'Incidents',
+                    data: [120, 190, 85, 45, 15, 110],
+                    backgroundColor: [
+                        '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb'
+                    ],
+                    borderRadius: 6,
+                    barThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { borderDash: [5, 5] }, ticks: { font: { size: 11 } } },
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+
+        // --- MICRO INTERACTIONS ---
+
+        function showToast() {
+            const toast = document.getElementById('notification-toast');
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(hideToast, 5000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('notification-toast');
+            toast.classList.add('translate-y-20', 'opacity-0');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+        }
+
+        // Show toast on load as a nice welcome micro-interaction
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(showToast, 1500);
+        });
+    </script>
+</body></html>
