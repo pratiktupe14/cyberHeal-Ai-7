@@ -25,7 +25,7 @@ export default function EnterpriseLayout({ children }) {
 <span className="material-symbols-outlined" data-icon="dashboard">dashboard</span>
 <span className="font-body-md text-body-md">Dashboard</span>
 </Link>
-<Link className={getLinkClasses('/logs')} to="/logs">
+<Link className={getLinkClasses('/incidents')} to="/incidents">
 <span className="material-symbols-outlined" data-icon="security">security</span>
 <span className="font-body-md text-body-md">Incidents</span>
 </Link>
@@ -41,11 +41,11 @@ export default function EnterpriseLayout({ children }) {
 <span className="material-symbols-outlined" data-icon="analytics">analytics</span>
 <span className="font-body-md text-body-md">Threat Analytics</span>
 </Link>
-<Link className={getLinkClasses('/logs-portal')} to="#">
+<Link className={getLinkClasses('/logs')} to="/logs">
 <span className="material-symbols-outlined" data-icon="list_alt">list_alt</span>
 <span className="font-body-md text-body-md">Logs</span>
 </Link>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="#">
+<Link className={getLinkClasses('/reports')} to="/reports">
 <span className="material-symbols-outlined" data-icon="description">description</span>
 <span className="font-body-md text-body-md">Reports</span>
 </Link>
@@ -55,7 +55,7 @@ export default function EnterpriseLayout({ children }) {
 <div className="w-2 h-2 rounded-full bg-tertiary status-pulse"></div>
 <span className="text-label-md font-medium text-tertiary">System Status: Active</span>
 </div>
-<Link className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors" to="#">
+<Link className={getLinkClasses('/settings')} to="/settings">
 <span className="material-symbols-outlined" data-icon="settings">settings</span>
 <span className="font-body-md text-body-md">Settings</span>
 </Link>
