@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function LandingPage() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handleScroll = () => {
       const nav = document.querySelector('nav');
@@ -58,7 +60,7 @@ export default function LandingPage() {
 </div>
 <div className="flex items-center gap-stack-md">
 <button className="hidden sm:block font-label-md text-label-md text-primary px-4 py-2 hover:bg-surface-container transition-all rounded-lg">Sign In</button>
-<button className="bg-primary hover:bg-primary/90 text-on-primary px-6 py-2.5 rounded-lg font-label-md text-label-md font-bold shadow-md active:scale-95 transition-all">
+<button onClick={() => navigate('/dashboard')} className="bg-primary hover:bg-primary/90 text-on-primary px-6 py-2.5 rounded-lg font-label-md text-label-md font-bold shadow-md active:scale-95 transition-all">
                     Get Started
                 </button>
 </div>
@@ -81,7 +83,7 @@ export default function LandingPage() {
                         CyberHeal AI 2.0 leverages multi-agent intelligence to predict, neutralize, and recover from sophisticated threats in milliseconds. Defend your enterprise with an immune system that never sleeps.
                     </p>
 <div className="flex flex-col sm:flex-row gap-stack-md pt-stack-sm">
-<button className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/95 text-on-primary px-8 py-4 rounded-xl font-headline-sm text-headline-sm shadow-xl hover:shadow-primary/20 transition-all group">
+<button onClick={() => navigate('/dashboard')} className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/95 text-on-primary px-8 py-4 rounded-xl font-headline-sm text-headline-sm shadow-xl hover:shadow-primary/20 transition-all group">
                             Get Started Free
                             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
 </button>
@@ -267,7 +269,7 @@ export default function LandingPage() {
                     Join the 500+ enterprises that trust CyberHeal AI 2.0 to protect their mission-critical data.
                 </p>
 <div className="flex flex-col sm:flex-row justify-center gap-stack-md">
-<button className="bg-primary hover:bg-primary/95 text-on-primary px-10 py-5 rounded-2xl font-headline-sm text-headline-sm shadow-xl active:scale-95 transition-all">
+<button onClick={() => navigate('/dashboard')} className="bg-primary hover:bg-primary/95 text-on-primary px-10 py-5 rounded-2xl font-headline-sm text-headline-sm shadow-xl active:scale-95 transition-all">
                         Get Started for Free
                     </button>
 <button className="bg-surface-container hover:bg-surface-container-high text-on-surface px-10 py-5 rounded-2xl font-headline-sm text-headline-sm transition-all">

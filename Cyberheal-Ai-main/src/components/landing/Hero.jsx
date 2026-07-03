@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom';
+
 export default function Hero() {
+  const navigate = useNavigate();
   return (
     <section className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-16 md:pt-24 pb-32">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-stack-lg items-center">
@@ -15,7 +18,7 @@ export default function Hero() {
             CyberHeal AI 2.0 leverages multi-agent intelligence to predict, neutralize, and recover from sophisticated threats in milliseconds. Defend your enterprise with an immune system that never sleeps.
           </p>
           <div className="flex flex-col sm:flex-row gap-stack-md pt-stack-sm">
-            <button className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/95 text-on-primary px-8 py-4 rounded-xl font-headline-sm text-headline-sm shadow-xl hover:shadow-primary/20 transition-all group">
+            <button onClick={() => navigate('/dashboard')} className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/95 text-on-primary px-8 py-4 rounded-xl font-headline-sm text-headline-sm shadow-xl hover:shadow-primary/20 transition-all group">
               Get Started Free
               <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </button>
