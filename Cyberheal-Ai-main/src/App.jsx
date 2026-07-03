@@ -8,12 +8,14 @@ import ThreatAnalytics from './pages/ThreatAnalytics'
 import LiveMonitoring from './pages/LiveMonitoring'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
+import LoginPortal from './pages/LoginPortal'
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPortal />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/logs" element={<LogsPortal />} />
         <Route path="/incidents" element={<IncidentManagement />} />
