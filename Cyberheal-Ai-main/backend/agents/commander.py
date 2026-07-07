@@ -5,11 +5,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CommanderAgent:
-    def __init__(self, threat_intel_agent=None, issue_detector_agent=None):
+    def __init__(self, threat_intel_agent=None, issue_detector_agent=None, diagnosis_agent=None):
         # In-memory store for workflow state tracking
         self.active_workflows = {}
         self.threat_intel_agent = threat_intel_agent
         self.issue_detector_agent = issue_detector_agent
+        self.diagnosis_agent = diagnosis_agent
 
     def analyze_severity(self, incident_data):
         """Analyze the incident and return severity."""
@@ -81,6 +82,8 @@ class CommanderAgent:
             return self.threat_intel_agent.enrich_incident(workflow)
         elif agent_name == "IssueDetectorAgent" and self.issue_detector_agent:
             return self.issue_detector_agent.detect_and_classify(workflow)
+        elif agent_name == "DiagnosisAgent" and self.diagnosis_agent:
+            return self.diagnosis_agent.investigate(workflow)
             
         # For simulation, assume all other agents succeed.
         time.sleep(0.5) # Simulate processing time
