@@ -5,11 +5,14 @@ import subprocess
 import json
 import logging
 from agents.commander import CommanderAgent
+from agents.intake import IntakeAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
 # Initialize central AI orchestrator
 commander_agent = CommanderAgent()
+# Initialize Intake agent
+intake_agent = IntakeAgent(commander_agent)
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,7 +64,7 @@ async def websocket_logs(websocket: WebSocket):
 async def receive_security_event(request: Request, background_tasks: BackgroundTasks):
     try:
         event_data = await request.json()
-        incident_id, state = commander_agent.process_incident(event_data)
+        incident_id, state = intake_agent.receive_event("webhook", event_data)
         
         # Execute plan in the background
         background_tasks.add_task(commander_agent.execute_plan, incident_id)
@@ -73,4 +76,8 @@ async def receive_security_event(request: Request, background_tasks: BackgroundT
 
 @app.get("/api/agents/commander/state")
 def get_commander_state():
-    return {"status": "success", "data": commander_agent.active_workflows}
+    return {"status": "success", "data": commander_agent.active_workflows}
+
+@app.get("/api/agents/intake/events")
+def get_intake_events():
+    return {"status": "success", "data": intake_agent.stored_events}
