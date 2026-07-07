@@ -5,10 +5,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CommanderAgent:
-    def __init__(self, threat_intel_agent=None):
+    def __init__(self, threat_intel_agent=None, issue_detector_agent=None):
         # In-memory store for workflow state tracking
         self.active_workflows = {}
         self.threat_intel_agent = threat_intel_agent
+        self.issue_detector_agent = issue_detector_agent
 
     def analyze_severity(self, incident_data):
         """Analyze the incident and return severity."""
@@ -30,13 +31,13 @@ class CommanderAgent:
         base_plan = ["IntakeAgent", "SentinelAgent"]
         
         if severity == "Low":
-            base_plan.extend(["ScribeAgent"])
+            base_plan.extend(["IssueDetectorAgent", "DiagnosisAgent", "ScribeAgent"])
         elif severity == "Medium":
-            base_plan.extend(["ThreatIntelAgent", "ScribeAgent"])
+            base_plan.extend(["ThreatIntelAgent", "IssueDetectorAgent", "DiagnosisAgent", "ScribeAgent"])
         elif severity == "High":
-            base_plan.extend(["ThreatIntelAgent", "CausorAgent", "PlannerAgent", "ScribeAgent"])
+            base_plan.extend(["ThreatIntelAgent", "IssueDetectorAgent", "DiagnosisAgent", "CausorAgent", "PlannerAgent", "ScribeAgent"])
         elif severity == "Critical":
-            base_plan.extend(["ThreatIntelAgent", "CausorAgent", "PlannerAgent", "GuardianAgent", "ExecutorAgent", "VerifierAgent", "ScribeAgent"])
+            base_plan.extend(["ThreatIntelAgent", "IssueDetectorAgent", "DiagnosisAgent", "CausorAgent", "PlannerAgent", "GuardianAgent", "ExecutorAgent", "VerifierAgent", "ScribeAgent"])
             
         return base_plan
 
@@ -78,6 +79,8 @@ class CommanderAgent:
         
         if agent_name == "ThreatIntelAgent" and self.threat_intel_agent:
             return self.threat_intel_agent.enrich_incident(workflow)
+        elif agent_name == "IssueDetectorAgent" and self.issue_detector_agent:
+            return self.issue_detector_agent.detect_and_classify(workflow)
             
         # For simulation, assume all other agents succeed.
         time.sleep(0.5) # Simulate processing time

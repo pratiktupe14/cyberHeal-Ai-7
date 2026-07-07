@@ -8,13 +8,18 @@ from agents.commander import CommanderAgent
 from agents.sentinel import SentinelAgent
 from agents.intake import IntakeAgent
 from agents.threat_intel import ThreatIntelAgent
-from agents.threat_intel import ThreatIntelAgent
+from agents.issue_detector import IssueDetectorAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
 # Initialize Agents
 threat_intel_agent = ThreatIntelAgent()
-commander_agent = CommanderAgent(threat_intel_agent)
+
+# Create commander first, we will inject it into issue detector, then inject issue detector back
+commander_agent = CommanderAgent(threat_intel_agent=threat_intel_agent)
+issue_detector_agent = IssueDetectorAgent(commander_agent=commander_agent)
+commander_agent.issue_detector_agent = issue_detector_agent
+
 sentinel_agent = SentinelAgent(commander_agent)
 intake_agent = IntakeAgent(sentinel_agent)
 
@@ -96,4 +101,8 @@ def get_sentinel_status():
 
 @app.get("/api/agents/threat_intel/status")
 def get_threat_intel_status():
-    return {"status": "success", "stats": threat_intel_agent.enrichment_stats}
+    return {"status": "success", "stats": threat_intel_agent.enrichment_stats}
+
+@app.get("/api/agents/issue_detector/status")
+def get_issue_detector_status():
+    return {"status": "success", "metrics": issue_detector_agent.metrics}
