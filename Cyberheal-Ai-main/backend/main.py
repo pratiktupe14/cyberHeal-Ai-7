@@ -14,6 +14,7 @@ from agents.causor import CausorAgent
 from agents.planner import PlannerAgent
 from agents.guardian import GuardianAgent
 from agents.executor import ExecutorAgent
+from agents.verifier import VerifierAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -24,6 +25,7 @@ causor_agent = CausorAgent()
 planner_agent = PlannerAgent()
 guardian_agent = GuardianAgent()
 executor_agent = ExecutorAgent()
+verifier_agent = VerifierAgent()
 
 # Create commander first, we will inject it into issue detector, then inject issue detector back
 commander_agent = CommanderAgent(
@@ -32,7 +34,8 @@ commander_agent = CommanderAgent(
     causor_agent=causor_agent,
     planner_agent=planner_agent,
     guardian_agent=guardian_agent,
-    executor_agent=executor_agent
+    executor_agent=executor_agent,
+    verifier_agent=verifier_agent
 )
 issue_detector_agent = IssueDetectorAgent(commander_agent=commander_agent)
 commander_agent.issue_detector_agent = issue_detector_agent
@@ -142,4 +145,8 @@ def get_guardian_status():
 
 @app.get("/api/agents/executor/status")
 def get_executor_status():
-    return {"status": "success", "metrics": executor_agent.metrics}
+    return {"status": "success", "metrics": executor_agent.metrics}
+
+@app.get("/api/agents/verifier/status")
+def get_verifier_status():
+    return {"status": "success", "metrics": verifier_agent.metrics}
