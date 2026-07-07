@@ -5,13 +5,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CommanderAgent:
-    def __init__(self, threat_intel_agent=None, issue_detector_agent=None, diagnosis_agent=None, causor_agent=None):
+    def __init__(self, threat_intel_agent=None, issue_detector_agent=None, diagnosis_agent=None, causor_agent=None, planner_agent=None, executor_agent=None):
         # In-memory store for workflow state tracking
         self.active_workflows = {}
         self.threat_intel_agent = threat_intel_agent
         self.issue_detector_agent = issue_detector_agent
         self.diagnosis_agent = diagnosis_agent
         self.causor_agent = causor_agent
+        self.planner_agent = planner_agent
+        self.executor_agent = executor_agent
 
     def analyze_severity(self, incident_data):
         """Analyze the incident and return severity."""
@@ -87,6 +89,10 @@ class CommanderAgent:
             return self.diagnosis_agent.investigate(workflow)
         elif agent_name == "CausorAgent" and self.causor_agent:
             return self.causor_agent.perform_rca(workflow)
+        elif agent_name == "PlannerAgent" and self.planner_agent:
+            return self.planner_agent.generate_plan(workflow)
+        elif agent_name == "ExecutorAgent" and self.executor_agent:
+            return self.executor_agent.execute_remediation(workflow)
             
         # For simulation, assume all other agents succeed.
         time.sleep(0.5) # Simulate processing time
