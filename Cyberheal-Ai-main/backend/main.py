@@ -10,17 +10,20 @@ from agents.intake import IntakeAgent
 from agents.threat_intel import ThreatIntelAgent
 from agents.issue_detector import IssueDetectorAgent
 from agents.diagnosis import DiagnosisAgent
+from agents.causor import CausorAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
 # Initialize Agents
 threat_intel_agent = ThreatIntelAgent()
 diagnosis_agent = DiagnosisAgent()
+causor_agent = CausorAgent()
 
 # Create commander first, we will inject it into issue detector, then inject issue detector back
 commander_agent = CommanderAgent(
     threat_intel_agent=threat_intel_agent,
-    diagnosis_agent=diagnosis_agent
+    diagnosis_agent=diagnosis_agent,
+    causor_agent=causor_agent
 )
 issue_detector_agent = IssueDetectorAgent(commander_agent=commander_agent)
 commander_agent.issue_detector_agent = issue_detector_agent
@@ -114,4 +117,8 @@ def get_issue_detector_status():
 
 @app.get("/api/agents/diagnosis/status")
 def get_diagnosis_status():
-    return {"status": "success", "metrics": diagnosis_agent.metrics}
+    return {"status": "success", "metrics": diagnosis_agent.metrics}
+
+@app.get("/api/agents/causor/status")
+def get_causor_status():
+    return {"status": "success", "metrics": causor_agent.metrics}
