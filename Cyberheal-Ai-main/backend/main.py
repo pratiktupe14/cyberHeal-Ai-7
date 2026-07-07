@@ -7,14 +7,15 @@ import logging
 from agents.commander import CommanderAgent
 from agents.sentinel import SentinelAgent
 from agents.intake import IntakeAgent
+from agents.threat_intel import ThreatIntelAgent
+from agents.threat_intel import ThreatIntelAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
-# Initialize central AI orchestrator
-commander_agent = CommanderAgent()
-# Initialize Sentinel Agent (Monitor)
+# Initialize Agents
+threat_intel_agent = ThreatIntelAgent()
+commander_agent = CommanderAgent(threat_intel_agent)
 sentinel_agent = SentinelAgent(commander_agent)
-# Initialize Intake agent
 intake_agent = IntakeAgent(sentinel_agent)
 
 app.add_middleware(
@@ -91,4 +92,8 @@ def get_intake_events():
 
 @app.get("/api/agents/sentinel/status")
 def get_sentinel_status():
-    return {"status": "success", "active_threats": sentinel_agent.active_threats}
+    return {"status": "success", "active_threats": sentinel_agent.active_threats}
+
+@app.get("/api/agents/threat_intel/status")
+def get_threat_intel_status():
+    return {"status": "success", "stats": threat_intel_agent.enrichment_stats}

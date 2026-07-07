@@ -5,9 +5,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CommanderAgent:
-    def __init__(self):
+    def __init__(self, threat_intel_agent=None):
         # In-memory store for workflow state tracking
         self.active_workflows = {}
+        self.threat_intel_agent = threat_intel_agent
 
     def analyze_severity(self, incident_data):
         """Analyze the incident and return severity."""
@@ -73,7 +74,12 @@ class CommanderAgent:
 
     def _simulate_agent_execution(self, agent_name, incident_id):
         """Stub method to simulate another agent's execution."""
-        # For simulation, assume all agents succeed.
+        workflow = self.active_workflows.get(incident_id)
+        
+        if agent_name == "ThreatIntelAgent" and self.threat_intel_agent:
+            return self.threat_intel_agent.enrich_incident(workflow)
+            
+        # For simulation, assume all other agents succeed.
         time.sleep(0.5) # Simulate processing time
         return True
 
