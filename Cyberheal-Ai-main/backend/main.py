@@ -1,11 +1,15 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import subprocess
 import json
 import logging
+from agents.commander import CommanderAgent
 
 app = FastAPI(title="SOC Dashboard API")
+
+# Initialize central AI orchestrator
+commander_agent = CommanderAgent()
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,3 +56,21 @@ async def websocket_logs(websocket: WebSocket):
             await asyncio.sleep(5)
     except WebSocketDisconnect:
         pass
+
+@app.post("/webhook/security-event")
+async def receive_security_event(request: Request, background_tasks: BackgroundTasks):
+    try:
+        event_data = await request.json()
+        incident_id, state = commander_agent.process_incident(event_data)
+        
+        # Execute plan in the background
+        background_tasks.add_task(commander_agent.execute_plan, incident_id)
+        
+        return {"status": "success", "incident_id": incident_id, "message": "Incident processing started"}
+    except Exception as e:
+        logging.error(f"Error processing webhook: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/agents/commander/state")
+def get_commander_state():
+    return {"status": "success", "data": commander_agent.active_workflows}

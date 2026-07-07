@@ -32,19 +32,19 @@ export default function LoginPortal() {
     return (
         <div className="bg-background text-on-surface min-h-screen">
             <div className="flex flex-col md:flex-row min-h-screen w-full">
-<!-- Left Section: Branding & Info -->
+{/* Left Section: Branding & Info */}
 <section className="hidden md:flex md:w-1/2 bg-surface-container-low p-12 lg:p-24 flex-col justify-between relative overflow-hidden">
-<!-- Background Decoration (Grid/Pattern) -->
+{/* Background Decoration (Grid/Pattern) */}
 <div className="absolute inset-0 opacity-10 pointer-events-none" style={{backgroundImage: "radial-gradient(#004ac6 1px, transparent 1px)", backgroundSize: "32px 32px"}}></div>
 <div className="relative z-10">
-<!-- Branding -->
+{/* Branding */}
 <div className="flex items-center gap-3 mb-16">
 <div className="w-10 h-10 bg-primary-container text-white flex items-center justify-center rounded-lg shadow-lg">
 <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>shield_with_heart</span>
 </div>
 <span className="text-2xl font-black tracking-tight text-on-surface">CyberHeal AI&nbsp;</span>
 </div>
-<!-- Hero Content -->
+{/* Hero Content */}
 <div className="max-w-xl">
 <h1 className="text-5xl font-black leading-tight tracking-tight text-on-surface mb-6">
                         Secure Access to Autonomous <span className="text-primary-container">Cyber Defense</span>
@@ -52,7 +52,7 @@ export default function LoginPortal() {
 <p className="text-lg text-on-surface-variant leading-relaxed mb-10">
                         Empowering SOC teams with multi-agent AI for real-time threat detection and autonomous response. Experience the next generation of digital safety.
                     </p>
-<!-- Feature List -->
+{/* Feature List */}
 <div className="space-y-6">
 <div className="flex items-center gap-4 group">
 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
@@ -87,22 +87,22 @@ export default function LoginPortal() {
 </div>
 </div>
 </div>
-<!-- Visual Asset Placeholder -->
+{/* Visual Asset Placeholder */}
 <div className="mt-20 rounded-2xl overflow-hidden shadow-2xl border border-white/20 aspect-video relative">
 <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent z-10"></div>
 <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk1u_6zK-tBmzLHGDSwQ4jJYV3ovbISRA7G2J73mwpV9jSZ_mzQ2ganY-uUotRZy5FZIuAIjz9tHnueLevOBmKZSlaKCV8XnIZFl3-SfJdm2g6hmFX0zCgveUC0PSyOH8nZKncDrDrtTiOV6-_EUlLgfquP8Av4nGiTGk6gHs0oBfxfIJAiqF5hY2hVbGGIQWkP_pNECRvg5zfZoI5wI0RgtrNa1d9emRhd9n5JQUAYM1qFQExge27" alt="CyberHeal AI 2.0 Enterprise Security Dashboard" />
 </div>
 </section>
-<!-- Right Section: Login Form -->
+{/* Right Section: Login Form */}
 <main className="w-full md:w-1/2 flex flex-col bg-white dark:bg-inverse-surface items-center justify-center p-6 lg:p-12 relative">
-<!-- Floating Header -->
+{/* Floating Header */}
 <div className="absolute top-8 right-8 flex items-center gap-4">
 <button className="p-2 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant" id="theme-toggle" onClick={toggleTheme} title="Toggle Light/Dark Mode">
 <span className="material-symbols-outlined dark:hidden">dark_mode</span>
 <span className="material-symbols-outlined hidden dark:block">light_mode</span>
 </button>
 </div>
-<!-- Login Card Container -->
+{/* Login Card Container */}
 <div className="w-full max-w-md">
 <div className="glass-card p-8 lg:p-10 rounded-[16px] shadow-2xl">
 <div className="text-center md:text-left mb-10">
@@ -110,7 +110,7 @@ export default function LoginPortal() {
 <p className="text-on-surface-variant">Sign in to continue to CyberHeal AI&nbsp;</p>
 </div>
 <form className="space-y-6" onSubmit={handleLogin}>
-<!-- Email -->
+{/* Email */}
 <div className="space-y-2">
 <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="email">Email address</label>
 <div className="relative">
@@ -118,7 +118,7 @@ export default function LoginPortal() {
 <input className="w-full pl-12 pr-4 py-3.5 rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" id="email" placeholder="name@company.com" type="email" />
 </div>
 </div>
-<!-- Password -->
+{/* Password */}
 <div className="space-y-2">
 <div className="flex justify-between items-center px-1">
 <label className="text-sm font-semibold text-on-surface" htmlFor="password">Password</label>
@@ -132,23 +132,23 @@ export default function LoginPortal() {
 </button>
 </div>
 </div>
-<!-- Remember & Meta -->
+{/* Remember & Meta */}
 <div className="flex items-center gap-2">
 <input className="w-4 h-4 text-primary border-outline-variant rounded focus:ring-primary" id="remember" type="checkbox" />
 <label className="text-sm text-on-surface-variant cursor-pointer select-none" htmlFor="remember">Remember this device</label>
 </div>
-<!-- Primary CTA -->
+{/* Primary CTA */}
 <button className="w-full bg-primary-container text-white py-4 rounded-lg font-bold text-lg shadow-lg shadow-primary/20 hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                             Sign In
                             <span className="material-symbols-outlined">login</span>
 </button>
-<!-- Divider -->
+{/* Divider */}
 <div className="flex items-center gap-4 py-2">
 <div className="h-px grow bg-outline-variant"></div>
 <span className="text-xs font-bold text-outline uppercase tracking-widest">Or continue with</span>
 <div className="h-px grow bg-outline-variant"></div>
 </div>
-<!-- Social Auth -->
+{/* Social Auth */}
 <div className="grid grid-cols-2 gap-4">
 <button className="flex items-center justify-center gap-3 py-3 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors font-semibold text-on-surface text-sm">
 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -174,7 +174,7 @@ export default function LoginPortal() {
 </p>
 </div>
 </div>
-<!-- Trust Badges & Links -->
+{/* Trust Badges & Links */}
 <div className="mt-8 flex flex-col items-center gap-6">
 <div className="flex items-center gap-6 opacity-60">
 <div className="flex items-center gap-1.5">
@@ -195,7 +195,7 @@ export default function LoginPortal() {
 </div>
 </div>
 </div>
-<!-- Subtle background blob -->
+{/* Subtle background blob */}
 <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary-container/5 rounded-full blur-3xl -z-10 translate-x-1/2 translate-y-1/2"></div>
 </main>
 </div>
