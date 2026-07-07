@@ -5,14 +5,17 @@ import subprocess
 import json
 import logging
 from agents.commander import CommanderAgent
+from agents.sentinel import SentinelAgent
 from agents.intake import IntakeAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
 # Initialize central AI orchestrator
 commander_agent = CommanderAgent()
+# Initialize Sentinel Agent (Monitor)
+sentinel_agent = SentinelAgent(commander_agent)
 # Initialize Intake agent
-intake_agent = IntakeAgent(commander_agent)
+intake_agent = IntakeAgent(sentinel_agent)
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,12 +67,16 @@ async def websocket_logs(websocket: WebSocket):
 async def receive_security_event(request: Request, background_tasks: BackgroundTasks):
     try:
         event_data = await request.json()
+        # The flow is Intake -> Sentinel -> Commander
+        # If Sentinel doesn't find a threat, incident_id will be None
         incident_id, state = intake_agent.receive_event("webhook", event_data)
         
-        # Execute plan in the background
-        background_tasks.add_task(commander_agent.execute_plan, incident_id)
-        
-        return {"status": "success", "incident_id": incident_id, "message": "Incident processing started"}
+        if incident_id:
+            # Execute plan in the background
+            background_tasks.add_task(commander_agent.execute_plan, incident_id)
+            return {"status": "success", "incident_id": incident_id, "message": "Threat detected and processing started"}
+        else:
+            return {"status": "success", "message": "Event processed. No threat detected."}
     except Exception as e:
         logging.error(f"Error processing webhook: {e}")
         return {"status": "error", "message": str(e)}
@@ -80,4 +87,8 @@ def get_commander_state():
 
 @app.get("/api/agents/intake/events")
 def get_intake_events():
-    return {"status": "success", "data": intake_agent.stored_events}
+    return {"status": "success", "data": intake_agent.stored_events}
+
+@app.get("/api/agents/sentinel/status")
+def get_sentinel_status():
+    return {"status": "success", "active_threats": sentinel_agent.active_threats}

@@ -5,9 +5,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 class IntakeAgent:
-    def __init__(self, commander_agent):
+    def __init__(self, sentinel_agent):
         self.stored_events = {}
-        self.commander_agent = commander_agent
+        self.sentinel_agent = sentinel_agent
 
     def receive_event(self, source, raw_data):
         """Entry point for receiving telemetry from various sources."""
@@ -67,11 +67,6 @@ class IntakeAgent:
         logger.info(f"[IntakeAgent] Stored event {normalized_event['id']}")
 
     def _forward_to_sentinel(self, normalized_event):
-        """Stub for SentinelAgent. Right now, it passes directly to CommanderAgent."""
+        """Forward to SentinelAgent for analysis."""
         logger.info(f"[IntakeAgent] Forwarding event {normalized_event['id']} to SentinelAgent...")
-        
-        # Simulation of SentinelAgent threat detection
-        time.sleep(0.5) 
-        
-        # Sentinel analyzes and then passes to Commander.
-        return self.commander_agent.process_incident(normalized_event)
+        return self.sentinel_agent.analyze(normalized_event)
