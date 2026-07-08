@@ -219,6 +219,28 @@ export function useReportState() {
   return { reportState };
 }
 
+export function useIdentityState() {
+  const [identityState, setIdentityState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/identity/status`)
+        .then(res => {
+          if (res.data) {
+            setIdentityState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching identity state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { identityState };
+}
+
 export const generateReport = async (payload) => {
   try {
     const res = await axios.post(`${API_BASE_URL}/api/agents/report/generate`, payload);

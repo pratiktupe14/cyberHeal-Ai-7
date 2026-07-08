@@ -23,6 +23,7 @@ from agents.memory import MemoryAgent
 from agents.analytics import AnalyticsAgent
 from agents.notification import NotificationAgent
 from agents.report import ReportAgent
+from agents.identity import IdentityAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -35,6 +36,7 @@ guardian_agent = GuardianAgent()
 executor_agent = ExecutorAgent()
 verifier_agent = VerifierAgent()
 notification_agent = NotificationAgent()
+identity_agent = IdentityAgent()
 
 # Initialize Knowledge Base, Learning Agent, and Memory Agent
 knowledge_base = KnowledgeBase()
@@ -223,6 +225,14 @@ def get_report_status():
         "status": "success",
         "metrics": report_agent.metrics,
         "scheduled_reports": report_agent.scheduled_reports
+    }
+
+@app.get("/api/agents/identity/status")
+def get_identity_status():
+    return {
+        "status": "success",
+        "metrics": identity_agent.metrics,
+        "active_sessions": len(identity_agent.active_sessions)
     }
 
 @app.post("/api/agents/report/generate")
