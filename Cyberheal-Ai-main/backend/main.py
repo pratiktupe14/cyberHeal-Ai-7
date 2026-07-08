@@ -22,6 +22,7 @@ from agents.reflective_learning import ReflectiveLearningAgent
 from agents.memory import MemoryAgent
 from agents.analytics import AnalyticsAgent
 from agents.notification import NotificationAgent
+from agents.report import ReportAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -39,6 +40,7 @@ notification_agent = NotificationAgent()
 knowledge_base = KnowledgeBase()
 reflective_learning_agent = ReflectiveLearningAgent(knowledge_base=knowledge_base)
 memory_agent = MemoryAgent()
+report_agent = ReportAgent(memory_agent=memory_agent, knowledge_base=knowledge_base)
 
 # Pass memory_agent and learning_agent to ScribeAgent so it can persist incident data to memory
 scribe_agent = ScribeAgent(reflective_learning_agent=reflective_learning_agent)
@@ -213,4 +215,34 @@ def get_notification_status():
         "status": "success",
         "metrics": notification_agent.metrics,
         "logs": notification_agent.notification_log
-    }
+    }
+
+@app.get("/api/agents/report/status")
+def get_report_status():
+    return {
+        "status": "success",
+        "metrics": report_agent.metrics,
+        "scheduled_reports": report_agent.scheduled_reports
+    }
+
+@app.post("/api/agents/report/generate")
+def generate_report(request: dict):
+    # Quick endpoint to simulate report generation from frontend
+    rtype = request.get("type", "audit")
+    format = request.get("format", "csv")
+    
+    if rtype == "incident":
+        data = report_agent.generate_incident_report(request.get("incident_id"))
+    elif rtype == "compliance":
+        data = report_agent.generate_compliance_report()
+    else:
+        data = report_agent.generate_audit_report()
+        
+    filename = f"{rtype}_report_{int(time.time())}.{format}"
+    
+    if format == "csv":
+        path = report_agent.export_csv(data, filename)
+    else:
+        path = report_agent.export_pdf(data, filename)
+        
+    return {"status": "success", "file": path, "data": data}

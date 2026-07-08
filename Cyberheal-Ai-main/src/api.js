@@ -196,3 +196,35 @@ export function useNotificationState() {
 
   return { notificationState };
 }
+
+export function useReportState() {
+  const [reportState, setReportState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/report/status`)
+        .then(res => {
+          if (res.data) {
+            setReportState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching report state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { reportState };
+}
+
+export const generateReport = async (payload) => {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/agents/report/generate`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("Error generating report:", err);
+    throw err;
+  }
+};
