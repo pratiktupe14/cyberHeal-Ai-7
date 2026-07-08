@@ -163,4 +163,4 @@ def get_final_status_status():
 
 @app.get("/api/agents/scribe/status")
 def get_scribe_status():
-    return {"status": "success", "logs_count": len(scribe_agent.logs)}
+    return {"status": "success", "logs_count": len(scribe_agent.logs), "logs": scribe_agent.logs}

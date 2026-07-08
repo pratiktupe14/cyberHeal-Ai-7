@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
-import { useLogs } from '../api';
+import { useLogs, useCommanderState } from '../api';
 
 export default function IncidentManagement() {
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const { logs, isConnected } = useLogs();
+  const { commanderState } = useCommanderState();
 
   useEffect(() => {
     let timer;
@@ -238,21 +239,43 @@ export default function IncidentManagement() {
 <section className="space-y-4">
 <div className="flex items-center justify-between">
 <h5 className="font-label-md text-label-md font-bold uppercase text-on-surface-variant/70 tracking-wider">AI Agent Workflow</h5>
-<span className="px-2 py-0.5 rounded-full text-[10px] bg-secondary/10 text-secondary border border-secondary/20">Waiting...</span>
+{commanderState && Object.values(commanderState).find(w => w.data?.Id === selectedIncident?.Id) ? (
+  <span className="px-2 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary border border-primary/20">
+    {Object.values(commanderState).find(w => w.data?.Id === selectedIncident?.Id).status}
+  </span>
+) : (
+  <span className="px-2 py-0.5 rounded-full text-[10px] bg-secondary/10 text-secondary border border-secondary/20">Waiting...</span>
+)}
 </div>
 <div className="relative pl-8 space-y-6">
 {/*  Vertical line  */}
 <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-outline-variant/30"></div>
-{/*  Timeline Item 1  */}
-<div className="relative">
-<div className="absolute -left-[27px] top-0 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm ring-4 ring-white">
-<span className="material-symbols-outlined text-sm" style={{fontVariationSettings: "'FILL' 1"}}>radar</span>
-</div>
-<div>
-<p className="font-label-md text-label-md font-bold">System <span className="text-on-surface-variant font-normal">detected event</span></p>
-<p className="text-xs text-on-surface-variant">Windows Event Log</p>
-</div>
-</div>
+{/*  Timeline Item  */}
+{commanderState && Object.values(commanderState).find(w => w.data?.Id === selectedIncident?.Id) ? (
+  Object.values(commanderState).find(w => w.data?.Id === selectedIncident?.Id).plan.map((step, idx) => (
+    <div key={idx} className="relative">
+      <div className="absolute -left-[27px] top-0 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm ring-4 ring-white">
+      <span className="material-symbols-outlined text-sm" style={{fontVariationSettings: "'FILL' 1"}}>radar</span>
+      </div>
+      <div>
+      <p className="font-label-md text-label-md font-bold">{step} <span className="text-on-surface-variant font-normal">in plan</span></p>
+      <p className="text-xs text-on-surface-variant">
+        {Object.values(commanderState).find(w => w.data?.Id === selectedIncident?.Id).current_step === step ? 'Currently Executing' : 'Pending / Completed'}
+      </p>
+      </div>
+    </div>
+  ))
+) : (
+  <div className="relative">
+  <div className="absolute -left-[27px] top-0 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm ring-4 ring-white">
+  <span className="material-symbols-outlined text-sm" style={{fontVariationSettings: "'FILL' 1"}}>radar</span>
+  </div>
+  <div>
+  <p className="font-label-md text-label-md font-bold">System <span className="text-on-surface-variant font-normal">detected event</span></p>
+  <p className="text-xs text-on-surface-variant">Windows Event Log</p>
+  </div>
+  </div>
+)}
 </div>
 </section>
 </div>

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
-import { useLogs } from '../api';
+import { useLogs, useScribeState } from '../api';
 
 export default function LogsPortal() {
   const [selectedLog, setSelectedLog] = useState(null);
   const { logs, isConnected } = useLogs();
+  const { scribeState } = useScribeState();
 
   const totalLogs = logs.length;
   const criticalLogs = logs.filter(l => l.LevelDisplayName === 'Error' || l.LevelDisplayName === 'Critical').length;
@@ -74,7 +75,7 @@ export default function LogsPortal() {
 </div>
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm border-t-2 border-t-secondary-container">
 <p className="text-label-md font-label-md text-on-surface-variant mb-2">AI Agent Activities</p>
-<h3 className="text-headline-md font-headline-md font-bold text-primary">0</h3>
+<h3 className="text-headline-md font-headline-md font-bold text-primary">{scribeState ? scribeState.length : 0}</h3>
 <p className="text-label-md font-label-md text-outline mt-2">Autonomous Operations</p>
 </div>
 <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant/30 shadow-sm">

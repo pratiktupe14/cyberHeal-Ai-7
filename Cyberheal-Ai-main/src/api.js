@@ -52,3 +52,47 @@ export function useLogs() {
 
   return { logs, isConnected };
 }
+
+export function useCommanderState() {
+  const [commanderState, setCommanderState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/commander/state`)
+        .then(res => {
+          if (res.data && res.data.data) {
+            setCommanderState(res.data.data);
+          }
+        })
+        .catch(err => console.error("Error fetching commander state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { commanderState };
+}
+
+export function useScribeState() {
+  const [scribeState, setScribeState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/scribe/status`)
+        .then(res => {
+          if (res.data && res.data.logs) {
+            setScribeState(res.data.logs);
+          }
+        })
+        .catch(err => console.error("Error fetching scribe state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { scribeState };
+}
