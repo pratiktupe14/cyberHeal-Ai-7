@@ -174,3 +174,25 @@ export function useAnalyticsData() {
 
   return { analyticsData };
 }
+
+export function useNotificationState() {
+  const [notificationState, setNotificationState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/notification/status`)
+        .then(res => {
+          if (res.data) {
+            setNotificationState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching notification state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000); // Fetch every 5s
+    return () => clearInterval(interval);
+  }, []);
+
+  return { notificationState };
+}

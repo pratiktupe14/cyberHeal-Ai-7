@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CommanderAgent:
-    def __init__(self, threat_intel_agent=None, issue_detector_agent=None, diagnosis_agent=None, causor_agent=None, planner_agent=None, guardian_agent=None, executor_agent=None, verifier_agent=None, final_status_agent=None, scribe_agent=None):
+    def __init__(self, threat_intel_agent=None, issue_detector_agent=None, diagnosis_agent=None, causor_agent=None, planner_agent=None, guardian_agent=None, executor_agent=None, verifier_agent=None, final_status_agent=None, scribe_agent=None, notification_agent=None):
         # In-memory store for workflow state tracking
         self.active_workflows = {}
         self.threat_intel_agent = threat_intel_agent
@@ -18,6 +18,7 @@ class CommanderAgent:
         self.verifier_agent = verifier_agent
         self.final_status_agent = final_status_agent
         self.scribe_agent = scribe_agent
+        self.notification_agent = notification_agent
 
     def analyze_severity(self, incident_data):
         """Analyze the incident and return severity."""
@@ -76,6 +77,8 @@ class CommanderAgent:
             if not success:
                 logger.error(f"[CommanderAgent] Incident {incident_id} - Failed at {step}. Escalating.")
                 workflow["status"] = f"Failed at {step} - Escalated for manual review"
+                if self.notification_agent:
+                    self.notification_agent.escalate(incident_id, f"Failed at {step}")
                 return # Stop execution on failure
                 
         workflow["status"] = "Completed"
@@ -130,4 +133,7 @@ class CommanderAgent:
         
         logger.info(f"[CommanderAgent] Created workflow {incident_id} with severity {severity}. Plan: {plan}")
         
+        if severity == "Critical" and self.notification_agent:
+            self.notification_agent.notify_administrators(self.active_workflows[incident_id])
+            
         return incident_id, self.active_workflows[incident_id]

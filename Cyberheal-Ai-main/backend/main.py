@@ -21,6 +21,7 @@ from agents.knowledge_base import KnowledgeBase
 from agents.reflective_learning import ReflectiveLearningAgent
 from agents.memory import MemoryAgent
 from agents.analytics import AnalyticsAgent
+from agents.notification import NotificationAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -32,6 +33,7 @@ planner_agent = PlannerAgent()
 guardian_agent = GuardianAgent()
 executor_agent = ExecutorAgent()
 verifier_agent = VerifierAgent()
+notification_agent = NotificationAgent()
 
 # Initialize Knowledge Base, Learning Agent, and Memory Agent
 knowledge_base = KnowledgeBase()
@@ -53,7 +55,8 @@ commander_agent = CommanderAgent(
     executor_agent=executor_agent,
     verifier_agent=verifier_agent,
     final_status_agent=final_status_agent,
-    scribe_agent=scribe_agent
+    scribe_agent=scribe_agent,
+    notification_agent=notification_agent
 )
 issue_detector_agent = IssueDetectorAgent(commander_agent=commander_agent)
 commander_agent.issue_detector_agent = issue_detector_agent
@@ -202,4 +205,12 @@ def search_memory(query: str):
 
 @app.get("/api/agents/analytics/dashboard")
 def get_analytics_dashboard():
-    return {"status": "success", "data": analytics_agent.generate_dashboard_metrics()}
+    return {"status": "success", "data": analytics_agent.generate_dashboard_metrics()}
+
+@app.get("/api/agents/notification/status")
+def get_notification_status():
+    return {
+        "status": "success",
+        "metrics": notification_agent.metrics,
+        "logs": notification_agent.notification_log
+    }
