@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyberheal-backend
+  labels:
+    app: cyberheal-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cyberheal-backend
+  template:
+    metadata:
+      labels:
+        app: cyberheal-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/yourorg/cyberheal-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: cyberheal-secrets
+              key: DB_URL
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cyberheal-secrets
+              key: SECRET_KEY
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cyberheal-secrets
+              key: ENCRYPTION_KEY
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cyberheal-backend
+spec:
+  selector:
+    app: cyberheal-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000

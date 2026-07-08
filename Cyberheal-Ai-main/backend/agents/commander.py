@@ -2,6 +2,15 @@ import uuid
 import time
 import logging
 import json
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from llm_provider import generate_reasoning
+except ImportError:
+    generate_reasoning = None
+
 from database import SessionLocal
 import models
 
@@ -168,6 +177,18 @@ class CommanderAgent:
         }
         
         logger.info(f"[CommanderAgent] Created workflow {incident_id} with severity {severity}. Plan: {plan}")
+        
+        # --- AI REASONING (Executive Summary) ---
+        ai_summary = None
+        if generate_reasoning:
+            context = f"Incident ID: {incident_id}\nSeverity: {severity}\nType: {incident_data.get('type')}\nPlan: {plan}"
+            prompt = "Provide a 1-sentence executive summary of the orchestration plan for this incident."
+            ai_summary = generate_reasoning(prompt, context)
+            
+        if ai_summary:
+            self.active_workflows[incident_id]["ai_summary"] = ai_summary
+        else:
+            self.active_workflows[incident_id]["ai_summary"] = f"Static fallback: Commencing {severity} severity orchestration."
         
         # SAVE Incident to Database
         with SessionLocal() as db:

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
+import ExecutiveDashboard from '../components/ExecutiveDashboard';
 import { useLogs } from '../api';
 
 export default function Dashboard() {
   const { logs } = useLogs();
+  const [view, setView] = useState('operational');
   
   const getLevelColor = (level) => {
     switch(level?.toLowerCase()) {
@@ -24,6 +26,12 @@ export default function Dashboard() {
 <p className="text-body-lg text-on-surface-variant">Last incident resolved 14 minutes ago by Autonomous Agent "Epsilon".</p>
 </div>
 <div className="flex gap-3">
+<button 
+  onClick={() => setView(view === 'operational' ? 'executive' : 'operational')}
+  className="flex items-center gap-2 px-4 py-2 bg-secondary-container text-on-secondary-container font-medium rounded-lg shadow-sm hover:translate-y-[-1px] transition-all">
+  <span className="material-symbols-outlined text-[18px]" data-icon="dashboard">dashboard</span>
+  {view === 'operational' ? 'Executive View' : 'Operational View'}
+</button>
 <button className="flex items-center gap-2 px-4 py-2 border border-outline-variant text-primary font-medium rounded-lg hover:bg-surface-container transition-all">
 <span className="material-symbols-outlined text-[18px]" data-icon="download">download</span>
                         Export Report
@@ -34,8 +42,13 @@ export default function Dashboard() {
                     </button>
 </div>
 </section>
-{/* KPI Row (Bento Grid Style) */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-gutter">
+
+{view === 'executive' ? (
+  <ExecutiveDashboard />
+) : (
+  <>
+  {/* KPI Row (Bento Grid Style) */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-gutter">
 {/* KPI 1 */}
 <div className="bg-surface-container-lowest p-5 rounded-xl card-shadow border border-outline-variant/20">
 <div className="flex justify-between items-start mb-2">
@@ -241,10 +254,12 @@ export default function Dashboard() {
 </div>
 <button className="w-full mt-6 py-2 text-primary font-bold text-label-md border border-primary/10 rounded-lg hover:bg-primary/5 transition-all">
                             View Historical Timeline
-                        </button>
+</button>
 </div>
 </div>
 </div>
+  </>
+)}
 </main>
     </EnterpriseLayout>
   );

@@ -105,6 +105,27 @@ export function useNotificationState() {
   return { notificationState: state.NOTIFICATIONS };
 }
 
+export function useExecutiveDashboard() {
+  const [executiveData, setExecutiveData] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      // Pass a dummy token if MOCK_AUTH is expected by backend, or just rely on backend config
+      axios.get(`${API_BASE_URL}/api/dashboard/executive`, { headers: { Authorization: "Bearer MOCK" } })
+        .then(res => {
+          if (res.data && res.data.data) setExecutiveData(res.data.data);
+        })
+        .catch(err => console.error("Error fetching executive dashboard:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 10000); // Fetch every 10s
+    return () => clearInterval(interval);
+  }, []);
+
+  return { executiveData };
+}
+
 // --- Remaining Hooks (REST) ---
 
 export function useReflectiveLearningState() {

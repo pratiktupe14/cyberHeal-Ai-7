@@ -1,0 +1,178 @@
+.executive-dashboard {
+  padding: 20px;
+  color: #e2e8f0;
+  background: transparent;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.exec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 16px;
+}
+
+.exec-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.status-badges {
+  display: flex;
+  gap: 12px;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge.success { color: #10b981; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); }
+.badge.danger { color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
+.badge.warning { color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1); }
+.badge.info { color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1); }
+
+.exec-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.exec-card {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.exec-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.exec-card h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.col-span-2 {
+  grid-column: span 2;
+}
+
+.score-value, .metric-value {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.success-text { color: #10b981; }
+.warning-text { color: #f59e0b; }
+.danger-text { color: #ef4444; }
+
+.sla-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sla-stats div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.sla-label {
+  color: #cbd5e1;
+  font-size: 1.1rem;
+}
+
+.sla-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+/* MITRE Grid */
+.mitre-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mitre-cell {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 120px;
+  text-align: center;
+}
+
+.mitre-count {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ef4444;
+  margin-bottom: 4px;
+}
+
+.mitre-tactic {
+  font-size: 0.75rem;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Threat Intel Feed */
+.ti-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.ti-item {
+  display: grid;
+  grid-template-columns: 100px 120px 150px 1fr;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+  font-size: 0.9rem;
+  align-items: center;
+}
+
+.ti-time { color: #64748b; font-family: monospace; }
+.ti-provider { color: #8b5cf6; font-weight: 600; font-size: 0.8rem; letter-spacing: 0.5px; }
+.ti-indicator { color: #cbd5e1; font-family: monospace; }
+.ti-details { color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Scrollbar styling */
+.ti-feed::-webkit-scrollbar { width: 6px; }
+.ti-feed::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); }
+.ti-feed::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+.ti-feed::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }

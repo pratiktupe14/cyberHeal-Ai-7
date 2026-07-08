@@ -67,3 +67,13 @@ class LearningHistory(Base):
     insight_type = Column(String)
     details = Column(JSON)
     timestamp = Column(Float)
+
+class ThreatIntelRecord(Base):
+    __tablename__ = "threat_intel_records"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    incident_id = Column(String, index=True)
+    provider = Column(String, index=True) # e.g. VirusTotal, AbuseIPDB, MITRE, CVE, NVD, OTX, CISA
+    indicator = Column(String) # IP, Hash, CVE ID
+    data = Column(JSON)
+    timestamp = Column(Float)

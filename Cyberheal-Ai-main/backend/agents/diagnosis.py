@@ -1,5 +1,14 @@
 import time
 import logging
+import json
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from llm_provider import generate_reasoning
+except ImportError:
+    generate_reasoning = None
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +42,19 @@ class DiagnosisAgent:
             "confidence_score": 85 if len(probable_causes) > 0 else 40
         }
         
+        # --- AI REASONING ---
+        ai_explanation = None
+        if generate_reasoning:
+            context = f"Event Type: {workflow_data.get('data', {}).get('type')}\nIP: {ip}\nProbable Causes identified by rules: {probable_causes}"
+            prompt = "Provide a concise, 2-3 sentence technical explanation of this incident and its root cause."
+            ai_explanation = generate_reasoning(prompt, context)
+            
+        if ai_explanation:
+            diagnosis_report["ai_explanation"] = ai_explanation
+            logger.info(f"[DiagnosisAgent] AI Reasoning generated successfully.")
+        else:
+            diagnosis_report["ai_explanation"] = "Static fallback: Incident matches signatures for " + ", ".join(probable_causes)
+            
         workflow_data["diagnosis"] = diagnosis_report
         self.metrics["diagnoses_completed"] += 1
         
