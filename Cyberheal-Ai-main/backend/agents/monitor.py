@@ -1,7 +1,9 @@
-import logging
 import time
 import random
 import asyncio
+import json
+from database import SessionLocal
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,21 @@ class MonitorAgent:
         if unhealthy_services:
             self.trigger_alerts(unhealthy_services)
             self.report_to_commander(unhealthy_services)
+            
+        # Persist to DB
+        try:
+            with SessionLocal() as db:
+                for comp, data in self.infrastructure.items():
+                    record = models.AgentStatusRecord(
+                        agent_name=comp,
+                        status=data["status"],
+                        metrics=json.dumps(data),
+                        timestamp=time.time()
+                    )
+                    db.add(record)
+                db.commit()
+        except Exception as e:
+            logger.error(f"[MonitorAgent] DB Error: {e}")
 
     def trigger_alerts(self, unhealthy_services):
         """Trigger notifications for unhealthy services."""

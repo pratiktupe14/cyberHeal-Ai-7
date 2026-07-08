@@ -4,6 +4,10 @@ import asyncio
 import subprocess
 import json
 import logging
+
+import database
+import models
+
 from agents.commander import CommanderAgent
 from agents.sentinel import SentinelAgent
 from agents.intake import IntakeAgent
@@ -79,6 +83,9 @@ analytics_agent = AnalyticsAgent(
 
 @app.on_event("startup")
 async def startup_event():
+    # Initialize Database Tables
+    models.Base.metadata.create_all(bind=database.engine)
+    
     asyncio.create_task(monitor_agent.start_monitoring())
 
 app.add_middleware(
@@ -111,21 +118,58 @@ def get_recent_logs():
         logs = get_windows_logs("System", 20)
     return {"status": "success", "data": logs}
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
+
 @app.websocket("/ws")
 async def websocket_logs(websocket: WebSocket):
-    await websocket.accept()
+    await manager.connect(websocket)
     try:
         while True:
-            # Poll every 5 seconds
-            logs = get_windows_logs("System", 10) # Using System for broader accessibility
+            # Polling at 1 second intervals for true real-time feel
+            
+            # 1. LOG_UPDATE (existing system logs)
+            logs = get_windows_logs("System", 10)
             security_logs = get_windows_logs("Security", 5)
             if security_logs:
                 logs = security_logs + logs
-            
             await websocket.send_json({"type": "LOG_UPDATE", "data": logs})
-            await asyncio.sleep(5)
+            
+            # 2. GLOBAL_AGENT_STATUS
+            await websocket.send_json({"type": "GLOBAL_AGENT_STATUS", "data": get_global_status()})
+            
+            # 3. WORKFLOW_UPDATE
+            await websocket.send_json({"type": "WORKFLOW_UPDATE", "data": get_commander_state()})
+            
+            # 4. SYSTEM_HEALTH
+            await websocket.send_json({"type": "SYSTEM_HEALTH", "data": get_monitor_status()})
+            
+            # 5. NOTIFICATIONS
+            await websocket.send_json({"type": "NOTIFICATIONS", "data": get_notification_status()})
+            
+            # 6. SCRIBE LOGS (for Activity Feed)
+            await websocket.send_json({"type": "SCRIBE_UPDATE", "data": get_scribe_status()})
+            
+            await asyncio.sleep(1)
     except WebSocketDisconnect:
-        pass
+        manager.disconnect(websocket)
 
 @app.post("/webhook/security-event")
 async def receive_security_event(request: Request, background_tasks: BackgroundTasks):
@@ -305,4 +349,29 @@ def get_global_status():
     return {
         "status": "success",
         "agents": agents_data
-    }
+    }
+
+# --- Database CRUD APIs ---
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+@app.get("/api/db/incidents")
+def get_incidents(db: Session = Depends(database.get_db)):
+    incidents = db.query(models.Incident).order_by(models.Incident.created_at.desc()).all()
+    return {"status": "success", "data": incidents}
+
+@app.get("/api/db/workflow-history/{incident_id}")
+def get_workflow_history(incident_id: str, db: Session = Depends(database.get_db)):
+    history = db.query(models.WorkflowHistory).filter(models.WorkflowHistory.incident_id == incident_id).order_by(models.WorkflowHistory.timestamp.asc()).all()
+    return {"status": "success", "data": history}
+
+@app.get("/api/db/audit-logs")
+def get_db_audit_logs(db: Session = Depends(database.get_db)):
+    logs = db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc()).limit(100).all()
+    return {"status": "success", "data": logs}
+
+@app.get("/api/db/remediations")
+def get_remediations(db: Session = Depends(database.get_db)):
+    remediations = db.query(models.RemediationHistory).order_by(models.RemediationHistory.timestamp.desc()).limit(50).all()
+    return {"status": "success", "data": remediations}

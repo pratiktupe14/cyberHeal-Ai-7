@@ -1,6 +1,9 @@
 import uuid
 import time
 import logging
+import json
+from database import SessionLocal
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,17 @@ class CommanderAgent:
             workflow["status"] = f"Executing {step}"
             logger.info(f"[CommanderAgent] Incident {incident_id} - {workflow['status']}")
             
+            # DB LOG: Execution started
+            with SessionLocal() as db:
+                history_record = models.WorkflowHistory(
+                    incident_id=incident_id,
+                    step=step,
+                    status="Started",
+                    timestamp=time.time()
+                )
+                db.add(history_record)
+                db.commit()
+            
             success = self._simulate_agent_execution(step, incident_id)
             retries = 0
             max_retries = 2
@@ -77,9 +91,31 @@ class CommanderAgent:
             if not success:
                 logger.error(f"[CommanderAgent] Incident {incident_id} - Failed at {step}. Escalating.")
                 workflow["status"] = f"Failed at {step} - Escalated for manual review"
+                
+                with SessionLocal() as db:
+                    history_record = models.WorkflowHistory(
+                        incident_id=incident_id,
+                        step=step,
+                        status="Failed",
+                        timestamp=time.time(),
+                        message="Escalated for manual review"
+                    )
+                    db.add(history_record)
+                    db.commit()
+
                 if self.notification_agent:
                     self.notification_agent.escalate(incident_id, f"Failed at {step}")
                 return # Stop execution on failure
+            else:
+                with SessionLocal() as db:
+                    history_record = models.WorkflowHistory(
+                        incident_id=incident_id,
+                        step=step,
+                        status="Completed",
+                        timestamp=time.time()
+                    )
+                    db.add(history_record)
+                    db.commit()
                 
         workflow["status"] = "Completed"
         logger.info(f"[CommanderAgent] Incident {incident_id} - Workflow Completed successfully.")
@@ -132,6 +168,19 @@ class CommanderAgent:
         }
         
         logger.info(f"[CommanderAgent] Created workflow {incident_id} with severity {severity}. Plan: {plan}")
+        
+        # SAVE Incident to Database
+        with SessionLocal() as db:
+            db_incident = models.Incident(
+                id=incident_id,
+                event_type=incident_data.get("type", "UNKNOWN"),
+                severity=severity,
+                data=incident_data,
+                created_at=time.time(),
+                status="Started"
+            )
+            db.add(db_incident)
+            db.commit()
         
         if severity == "Critical" and self.notification_agent:
             self.notification_agent.notify_administrators(self.active_workflows[incident_id])

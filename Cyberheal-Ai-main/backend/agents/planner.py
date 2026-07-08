@@ -1,5 +1,8 @@
 import time
 import logging
+import json
+from database import SessionLocal
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,20 @@ class PlannerAgent:
         self.metrics["plans_generated"] += 1
             
         logger.info(f"[PlannerAgent] Plan generated for {incident_id}. TTR: {estimated_ttr}m, Actions: {len(prioritized_actions)}")
+        
+        # Persist to DB
+        try:
+            with SessionLocal() as db:
+                ai_decision = models.AiDecision(
+                    incident_id=incident_id,
+                    agent_name="PlannerAgent",
+                    decision=json.dumps(remediation_plan),
+                    timestamp=time.time()
+                )
+                db.add(ai_decision)
+                db.commit()
+        except Exception as e:
+            logger.error(f"[PlannerAgent] DB Error: {e}")
         
         time.sleep(0.5) # Simulate processing
         return True

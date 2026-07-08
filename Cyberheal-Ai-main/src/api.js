@@ -4,98 +4,108 @@ import axios from 'axios';
 const API_BASE_URL = 'http://localhost:8000';
 const WS_BASE_URL = 'ws://localhost:8000';
 
-export function useLogs() {
-  const [logs, setLogs] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
+// Global shared state for the websocket
+let ws = null;
+const subscribers = new Set();
+let latestState = {
+  LOG_UPDATE: [],
+  GLOBAL_AGENT_STATUS: null,
+  WORKFLOW_UPDATE: null,
+  SYSTEM_HEALTH: null,
+  NOTIFICATIONS: null,
+  SCRIBE_UPDATE: null,
+  isConnected: false
+};
 
-  useEffect(() => {
-    // Initial fetch
-    axios.get(`${API_BASE_URL}/api/logs`)
-      .then(res => {
-        if (res.data && res.data.data) {
-          setLogs(res.data.data);
-        }
-      })
-      .catch(err => console.error("Error fetching logs:", err));
+const notifySubscribers = () => {
+  subscribers.forEach(sub => sub(latestState));
+};
 
-    // WebSocket connection
-    const ws = new WebSocket(`${WS_BASE_URL}/ws`);
+const connectWebSocket = () => {
+  if (ws) return;
+  ws = new WebSocket(`${WS_BASE_URL}/ws`);
 
-    ws.onopen = () => {
-      setIsConnected(true);
-    };
+  ws.onopen = () => {
+    latestState.isConnected = true;
+    notifySubscribers();
+  };
 
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.type === 'LOG_UPDATE' && message.data) {
-          setLogs(prev => {
-            const combined = [...message.data, ...prev];
-            // unique by Id and TimeCreated
-            const unique = combined.filter((v,i,a)=>a.findIndex(t=>(t.Id === v.Id && JSON.stringify(t.TimeCreated) === JSON.stringify(v.TimeCreated)))===i);
-            return unique.slice(0, 100);
-          });
-        }
-      } catch (err) {
-        console.error("WebSocket message error:", err);
+  ws.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data);
+      if (message.type === 'LOG_UPDATE' && message.data) {
+          const combined = [...message.data, ...(latestState.LOG_UPDATE || [])];
+          // unique by Id and TimeCreated
+          const unique = combined.filter((v,i,a)=>a.findIndex(t=>(t.Id === v.Id && JSON.stringify(t.TimeCreated) === JSON.stringify(v.TimeCreated)))===i);
+          latestState.LOG_UPDATE = unique.slice(0, 100);
+      } else if (message.type) {
+          latestState[message.type] = message.data;
       }
-    };
+      notifySubscribers();
+    } catch (err) {
+      console.error("WebSocket message error:", err);
+    }
+  };
 
-    ws.onclose = () => {
-      setIsConnected(false);
-    };
+  ws.onclose = () => {
+    latestState.isConnected = false;
+    notifySubscribers();
+    ws = null;
+    setTimeout(connectWebSocket, 5000); // Reconnect
+  };
+};
 
+export function useSharedWebSocket() {
+  const [state, setState] = useState(latestState);
+  
+  useEffect(() => {
+    connectWebSocket();
+    const subscriber = (newState) => {
+      setState({ ...newState });
+    };
+    subscribers.add(subscriber);
+    
     return () => {
-      ws.close();
+      subscribers.delete(subscriber);
     };
   }, []);
+  
+  return state;
+}
 
-  return { logs, isConnected };
+// --- Rewritten Hooks for WebSockets ---
+
+export function useLogs() {
+  const state = useSharedWebSocket();
+  return { logs: state.LOG_UPDATE, isConnected: state.isConnected };
 }
 
 export function useCommanderState() {
-  const [commanderState, setCommanderState] = useState(null);
-
-  useEffect(() => {
-    const fetchState = () => {
-      axios.get(`${API_BASE_URL}/api/agents/commander/state`)
-        .then(res => {
-          if (res.data && res.data.data) {
-            setCommanderState(res.data.data);
-          }
-        })
-        .catch(err => console.error("Error fetching commander state:", err));
-    };
-
-    fetchState();
-    const interval = setInterval(fetchState, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { commanderState };
+  const state = useSharedWebSocket();
+  return { commanderState: state.WORKFLOW_UPDATE };
 }
 
 export function useScribeState() {
-  const [scribeState, setScribeState] = useState(null);
-
-  useEffect(() => {
-    const fetchState = () => {
-      axios.get(`${API_BASE_URL}/api/agents/scribe/status`)
-        .then(res => {
-          if (res.data && res.data.logs) {
-            setScribeState(res.data.logs);
-          }
-        })
-        .catch(err => console.error("Error fetching scribe state:", err));
-    };
-
-    fetchState();
-    const interval = setInterval(fetchState, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { scribeState };
+  const state = useSharedWebSocket();
+  return { scribeState: state.SCRIBE_UPDATE ? state.SCRIBE_UPDATE.logs : null };
 }
+
+export function useGlobalAgentState() {
+  const state = useSharedWebSocket();
+  return { globalState: state.GLOBAL_AGENT_STATUS };
+}
+
+export function useMonitorState() {
+  const state = useSharedWebSocket();
+  return { monitorState: state.SYSTEM_HEALTH };
+}
+
+export function useNotificationState() {
+  const state = useSharedWebSocket();
+  return { notificationState: state.NOTIFICATIONS };
+}
+
+// --- Remaining Hooks (REST) ---
 
 export function useReflectiveLearningState() {
   const [rlmState, setRlmState] = useState(null);
@@ -104,9 +114,7 @@ export function useReflectiveLearningState() {
     const fetchState = () => {
       axios.get(`${API_BASE_URL}/api/agents/reflective_learning/status`)
         .then(res => {
-          if (res.data) {
-            setRlmState(res.data);
-          }
+          if (res.data) setRlmState(res.data);
         })
         .catch(err => console.error("Error fetching RLM state:", err));
     };
@@ -126,9 +134,7 @@ export function useMemoryState() {
     const fetchState = () => {
       axios.get(`${API_BASE_URL}/api/agents/memory/status`)
         .then(res => {
-          if (res.data) {
-            setMemoryState(res.data);
-          }
+          if (res.data) setMemoryState(res.data);
         })
         .catch(err => console.error("Error fetching memory state:", err));
     };
@@ -160,9 +166,7 @@ export function useAnalyticsData() {
     const fetchState = () => {
       axios.get(`${API_BASE_URL}/api/agents/analytics/dashboard`)
         .then(res => {
-          if (res.data && res.data.data) {
-            setAnalyticsData(res.data.data);
-          }
+          if (res.data && res.data.data) setAnalyticsData(res.data.data);
         })
         .catch(err => console.error("Error fetching analytics data:", err));
     };
@@ -175,28 +179,6 @@ export function useAnalyticsData() {
   return { analyticsData };
 }
 
-export function useNotificationState() {
-  const [notificationState, setNotificationState] = useState(null);
-
-  useEffect(() => {
-    const fetchState = () => {
-      axios.get(`${API_BASE_URL}/api/agents/notification/status`)
-        .then(res => {
-          if (res.data) {
-            setNotificationState(res.data);
-          }
-        })
-        .catch(err => console.error("Error fetching notification state:", err));
-    };
-
-    fetchState();
-    const interval = setInterval(fetchState, 5000); // Fetch every 5s
-    return () => clearInterval(interval);
-  }, []);
-
-  return { notificationState };
-}
-
 export function useReportState() {
   const [reportState, setReportState] = useState(null);
 
@@ -204,9 +186,7 @@ export function useReportState() {
     const fetchState = () => {
       axios.get(`${API_BASE_URL}/api/agents/report/status`)
         .then(res => {
-          if (res.data) {
-            setReportState(res.data);
-          }
+          if (res.data) setReportState(res.data);
         })
         .catch(err => console.error("Error fetching report state:", err));
     };
@@ -226,9 +206,7 @@ export function useIdentityState() {
     const fetchState = () => {
       axios.get(`${API_BASE_URL}/api/agents/identity/status`)
         .then(res => {
-          if (res.data) {
-            setIdentityState(res.data);
-          }
+          if (res.data) setIdentityState(res.data);
         })
         .catch(err => console.error("Error fetching identity state:", err));
     };
@@ -239,50 +217,6 @@ export function useIdentityState() {
   }, []);
 
   return { identityState };
-}
-
-export function useMonitorState() {
-  const [monitorState, setMonitorState] = useState(null);
-
-  useEffect(() => {
-    const fetchState = () => {
-      axios.get(`${API_BASE_URL}/api/agents/monitor/status`)
-        .then(res => {
-          if (res.data) {
-            setMonitorState(res.data);
-          }
-        })
-        .catch(err => console.error("Error fetching monitor state:", err));
-    };
-
-    fetchState();
-    const interval = setInterval(fetchState, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { monitorState };
-}
-
-export function useGlobalAgentState() {
-  const [globalState, setGlobalState] = useState(null);
-
-  useEffect(() => {
-    const fetchState = () => {
-      axios.get(`${API_BASE_URL}/api/agents/global_status`)
-        .then(res => {
-          if (res.data) {
-            setGlobalState(res.data);
-          }
-        })
-        .catch(err => console.error("Error fetching global agent state:", err));
-    };
-
-    fetchState();
-    const interval = setInterval(fetchState, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { globalState };
 }
 
 export const generateReport = async (payload) => {

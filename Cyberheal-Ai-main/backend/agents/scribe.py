@@ -2,6 +2,8 @@ import logging
 import time
 import json
 import os
+from database import SessionLocal
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,19 @@ class ScribeAgent:
         try:
             with open(filepath, "w") as f:
                 json.dump(data, f, indent=4)
+                
+            # Persist to DB
+            with SessionLocal() as db:
+                audit_log = models.AuditLog(
+                    incident_id=incident_id,
+                    agent_name="SCRIBE",
+                    message=f"Incident {incident_id} closure audit recorded",
+                    timestamp=time.time(),
+                    log_type="audit"
+                )
+                db.add(audit_log)
+                db.commit()
+                
             logger.info(f"[ScribeAgent] Stored audit log for {incident_id}")
         except Exception as e:
             logger.error(f"[ScribeAgent] Failed to store audit log: {e}")

@@ -1,5 +1,7 @@
 import time
 import logging
+from database import SessionLocal
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ class ExecutorAgent:
         
         for index, action in enumerate(actions):
             logger.info(f"[ExecutorAgent] Executing action {index + 1}/{len(actions)}: {action.get('action')} on {action.get('target')}")
-            result = self._simulate_execution(action, incident_ip)
+            result = self._simulate_execution(action, incident_ip, incident_id)
             execution_results.append(result)
             
             if result["status"] == "SUCCESS":
@@ -41,7 +43,7 @@ class ExecutorAgent:
         
         return True
 
-    def _simulate_execution(self, action, ip):
+    def _simulate_execution(self, action, ip, incident_id):
         """Simulate running system commands based on the action type."""
         action_name = action.get("action", "")
         target = action.get("target", "")
@@ -86,4 +88,18 @@ class ExecutorAgent:
         # Simulate command execution time
         time.sleep(0.5)
         
+        # Persist to DB
+        try:
+            with SessionLocal() as db:
+                history = models.RemediationHistory(
+                    incident_id=incident_id,
+                    action_taken=action_name,
+                    success=result["status"],
+                    timestamp=time.time()
+                )
+                db.add(history)
+                db.commit()
+        except Exception as e:
+            logger.error(f"[ExecutorAgent] DB Error: {e}")
+            
         return result
