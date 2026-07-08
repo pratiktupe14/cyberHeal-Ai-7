@@ -118,3 +118,37 @@ export function useReflectiveLearningState() {
 
   return { rlmState };
 }
+
+export function useMemoryState() {
+  const [memoryState, setMemoryState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/memory/status`)
+        .then(res => {
+          if (res.data) {
+            setMemoryState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching memory state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { memoryState };
+}
+
+export const searchMemory = async (query) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/agents/memory/search`, { params: { query } });
+    if (res.data && res.data.data) {
+      return res.data.data;
+    }
+  } catch (err) {
+    console.error("Error searching memory:", err);
+  }
+  return [];
+};

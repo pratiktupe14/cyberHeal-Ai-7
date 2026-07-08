@@ -19,6 +19,7 @@ from agents.final_status import FinalStatusAgent
 from agents.scribe import ScribeAgent
 from agents.knowledge_base import KnowledgeBase
 from agents.reflective_learning import ReflectiveLearningAgent
+from agents.memory import MemoryAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -31,11 +32,14 @@ guardian_agent = GuardianAgent()
 executor_agent = ExecutorAgent()
 verifier_agent = VerifierAgent()
 
-# Initialize Knowledge Base and Learning Agent
+# Initialize Knowledge Base, Learning Agent, and Memory Agent
 knowledge_base = KnowledgeBase()
 reflective_learning_agent = ReflectiveLearningAgent(knowledge_base=knowledge_base)
+memory_agent = MemoryAgent()
 
+# Pass memory_agent and learning_agent to ScribeAgent so it can persist incident data to memory
 scribe_agent = ScribeAgent(reflective_learning_agent=reflective_learning_agent)
+scribe_agent.memory_agent = memory_agent  # Dynamically inject or modify ScribeAgent later
 final_status_agent = FinalStatusAgent(scribe_agent=scribe_agent)
 
 # Create commander first, we will inject it into issue detector, then inject issue detector back
@@ -178,4 +182,13 @@ def get_reflective_learning_status():
         "status": "success",
         "metrics": reflective_learning_agent.metrics,
         "knowledge_base": knowledge_base.get_insights()
-    }
+    }
+
+@app.get("/api/agents/memory/status")
+def get_memory_status():
+    return {"status": "success", "metrics": memory_agent.metrics}
+
+@app.get("/api/agents/memory/search")
+def search_memory(query: str):
+    results = memory_agent.semantic_search(query)
+    return {"status": "success", "data": results}

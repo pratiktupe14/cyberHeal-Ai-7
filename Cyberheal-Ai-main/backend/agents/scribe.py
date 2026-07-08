@@ -9,6 +9,7 @@ class ScribeAgent:
     def __init__(self, reflective_learning_agent=None, storage_path="logs/"):
         self.logs = []
         self.reflective_learning_agent = reflective_learning_agent
+        self.memory_agent = None  # To be injected
         self.storage_path = storage_path
         
         if not os.path.exists(self.storage_path):
@@ -32,8 +33,11 @@ class ScribeAgent:
         self._store_audit_log(incident_id, log_entry)
         logger.info(f"[ScribeAgent] Logged closure for {incident_id}: {final_status}")
         
-        # Forward data to ReflectiveLearningAgent
+        # Forward data to ReflectiveLearningAgent and MemoryAgent
         self.forward_to_learning(workflow_data)
+        
+        if self.memory_agent:
+            self.memory_agent.store_incident(workflow_data)
         
         return True
         
