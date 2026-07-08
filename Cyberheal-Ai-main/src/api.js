@@ -96,3 +96,25 @@ export function useScribeState() {
 
   return { scribeState };
 }
+
+export function useReflectiveLearningState() {
+  const [rlmState, setRlmState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/reflective_learning/status`)
+        .then(res => {
+          if (res.data) {
+            setRlmState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching RLM state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { rlmState };
+}

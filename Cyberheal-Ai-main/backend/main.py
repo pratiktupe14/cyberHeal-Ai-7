@@ -17,6 +17,8 @@ from agents.executor import ExecutorAgent
 from agents.verifier import VerifierAgent
 from agents.final_status import FinalStatusAgent
 from agents.scribe import ScribeAgent
+from agents.knowledge_base import KnowledgeBase
+from agents.reflective_learning import ReflectiveLearningAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -28,7 +30,12 @@ planner_agent = PlannerAgent()
 guardian_agent = GuardianAgent()
 executor_agent = ExecutorAgent()
 verifier_agent = VerifierAgent()
-scribe_agent = ScribeAgent()
+
+# Initialize Knowledge Base and Learning Agent
+knowledge_base = KnowledgeBase()
+reflective_learning_agent = ReflectiveLearningAgent(knowledge_base=knowledge_base)
+
+scribe_agent = ScribeAgent(reflective_learning_agent=reflective_learning_agent)
 final_status_agent = FinalStatusAgent(scribe_agent=scribe_agent)
 
 # Create commander first, we will inject it into issue detector, then inject issue detector back
@@ -163,4 +170,12 @@ def get_final_status_status():
 
 @app.get("/api/agents/scribe/status")
 def get_scribe_status():
-    return {"status": "success", "logs_count": len(scribe_agent.logs), "logs": scribe_agent.logs}
+    return {"status": "success", "logs_count": len(scribe_agent.logs), "logs": scribe_agent.logs}
+
+@app.get("/api/agents/reflective_learning/status")
+def get_reflective_learning_status():
+    return {
+        "status": "success",
+        "metrics": reflective_learning_agent.metrics,
+        "knowledge_base": knowledge_base.get_insights()
+    }
