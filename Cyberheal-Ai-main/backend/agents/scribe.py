@@ -61,6 +61,14 @@ class ScribeAgent:
         # Maintain compliance records
         self._maintain_compliance_records(incident_id, lifecycle_data)
         
+        # Log to in-memory array for UI feed
+        self.logs.append({
+            "incident_id": incident_id,
+            "agent_name": "SCRIBE",
+            "message": f"Generated forensic & compliance report for incident {incident_id}",
+            "timestamp": time.time()
+        })
+        
         time.sleep(0.5) # Simulate report generation time
         return True
         

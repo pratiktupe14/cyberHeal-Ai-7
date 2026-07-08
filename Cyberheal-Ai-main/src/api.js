@@ -263,6 +263,28 @@ export function useMonitorState() {
   return { monitorState };
 }
 
+export function useGlobalAgentState() {
+  const [globalState, setGlobalState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/global_status`)
+        .then(res => {
+          if (res.data) {
+            setGlobalState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching global agent state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { globalState };
+}
+
 export const generateReport = async (payload) => {
   try {
     const res = await axios.post(`${API_BASE_URL}/api/agents/report/generate`, payload);

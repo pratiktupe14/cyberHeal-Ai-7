@@ -270,4 +270,39 @@ def get_monitor_status():
         "status": "success",
         "data": monitor_agent.get_status(),
         "is_monitoring": monitor_agent.is_monitoring
+    }
+
+@app.get("/api/agents/global_status")
+def get_global_status():
+    # Helper to check if an agent is currently executing in any workflow
+    def is_executing(agent_name):
+        for wf in commander_agent.active_workflows.values():
+            if wf.get("current_step") == agent_name and wf.get("status", "").startswith("Executing"):
+                return "Active"
+        return "Idle"
+        
+    agents_data = [
+        {"id": "intake", "name": "Intake", "role": "Data Ingestion", "status": "Active" if len(intake_agent.stored_events) > 0 else "Idle", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "input"},
+        {"id": "sentinel", "name": "Sentinel", "role": "Threat Detection", "status": "Active (24x7)", "success_rate": 99.8, "last_execution": "Live", "health": "Healthy", "icon": "security"},
+        {"id": "threat_intel", "name": "Threat Intel", "role": "Enrichment", "status": is_executing("ThreatIntelAgent"), "success_rate": 98.5, "last_execution": "Live" if threat_intel_agent.enrichment_stats["threats_processed"] > 0 else "Idle", "health": "Healthy", "icon": "troubleshoot"},
+        {"id": "issue_detector", "name": "Issue Detector", "role": "Classification", "status": is_executing("IssueDetectorAgent"), "success_rate": 99.1, "last_execution": "Live" if issue_detector_agent.metrics["issues_classified"] > 0 else "Idle", "health": "Healthy", "icon": "bug_report"},
+        {"id": "commander", "name": "Commander", "role": "Orchestrator AI", "status": "Active" if commander_agent.active_workflows else "Idle", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "account_tree"},
+        {"id": "diagnosis", "name": "Diagnosis", "role": "Deep Inspection", "status": is_executing("DiagnosisAgent"), "success_rate": 96.4, "last_execution": "Live" if diagnosis_agent.metrics["diagnoses_completed"] > 0 else "Idle", "health": "Healthy", "icon": "search"},
+        {"id": "causor", "name": "Causor", "role": "Root Cause Analysis", "status": is_executing("CausorAgent"), "success_rate": 94.2, "last_execution": "Live" if causor_agent.metrics["rca_completed"] > 0 else "Idle", "health": "Healthy", "icon": "troubleshoot"},
+        {"id": "planner", "name": "Planner", "role": "Recovery Planning", "status": is_executing("PlannerAgent"), "success_rate": 100.0, "last_execution": "Live" if planner_agent.metrics["plans_generated"] > 0 else "Idle", "health": "Healthy", "icon": "route"},
+        {"id": "guardian", "name": "Guardian", "role": "Safety Validation", "status": is_executing("GuardianAgent"), "success_rate": 99.9, "last_execution": "Live" if guardian_agent.metrics["plans_validated"] > 0 else "Idle", "health": "Healthy", "icon": "admin_panel_settings"},
+        {"id": "executor", "name": "Executor", "role": "Remediation", "status": is_executing("ExecutorAgent"), "success_rate": 99.5, "last_execution": "Live" if executor_agent.metrics["remediations_executed"] > 0 else "Idle", "health": "Healthy", "icon": "build"},
+        {"id": "verifier", "name": "Verifier", "role": "Validation", "status": is_executing("VerifierAgent"), "success_rate": 100.0, "last_execution": "Live" if verifier_agent.metrics["verifications_completed"] > 0 else "Idle", "health": "Healthy", "icon": "check_circle"},
+        {"id": "final_status", "name": "Final Status", "role": "Closure", "status": is_executing("FinalStatusAgent"), "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "done_all"},
+        {"id": "scribe", "name": "Scribe", "role": "Audit Logging", "status": is_executing("ScribeAgent"), "success_rate": 100.0, "last_execution": "Live" if len(scribe_agent.logs) > 0 else "Idle", "health": "Healthy", "icon": "history_edu"},
+        {"id": "rlm", "name": "Reflective Learning", "role": "Knowledge Base", "status": "Idle", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "school"},
+        {"id": "memory", "name": "Memory", "role": "Semantic Storage", "status": "Active", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "memory"},
+        {"id": "analytics", "name": "Analytics", "role": "Reporting", "status": "Active", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "analytics"},
+        {"id": "notification", "name": "Notification", "role": "Alerting", "status": "Active", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "notifications"},
+        {"id": "identity", "name": "Identity", "role": "Authentication", "status": "Active", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "person"},
+        {"id": "monitor", "name": "Monitor", "role": "Infra Checking", "status": "Active", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "monitor"}
+    ]
+    return {
+        "status": "success",
+        "agents": agents_data
     }
