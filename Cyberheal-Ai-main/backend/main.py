@@ -24,6 +24,7 @@ from agents.analytics import AnalyticsAgent
 from agents.notification import NotificationAgent
 from agents.report import ReportAgent
 from agents.identity import IdentityAgent
+from agents.monitor import MonitorAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -68,11 +69,17 @@ commander_agent.issue_detector_agent = issue_detector_agent
 sentinel_agent = SentinelAgent(commander_agent)
 intake_agent = IntakeAgent(sentinel_agent)
 
+monitor_agent = MonitorAgent(commander_agent=commander_agent, notification_agent=notification_agent)
+
 analytics_agent = AnalyticsAgent(
     memory_agent=memory_agent,
     knowledge_base=knowledge_base,
     commander_agent=commander_agent
 )
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(monitor_agent.start_monitoring())
 
 app.add_middleware(
     CORSMiddleware,
@@ -255,4 +262,12 @@ def generate_report(request: dict):
     else:
         path = report_agent.export_pdf(data, filename)
         
-    return {"status": "success", "file": path, "data": data}
+    return {"status": "success", "file": path, "data": data}
+
+@app.get("/api/agents/monitor/status")
+def get_monitor_status():
+    return {
+        "status": "success",
+        "data": monitor_agent.get_status(),
+        "is_monitoring": monitor_agent.is_monitoring
+    }

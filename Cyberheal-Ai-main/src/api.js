@@ -241,6 +241,28 @@ export function useIdentityState() {
   return { identityState };
 }
 
+export function useMonitorState() {
+  const [monitorState, setMonitorState] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/monitor/status`)
+        .then(res => {
+          if (res.data) {
+            setMonitorState(res.data);
+          }
+        })
+        .catch(err => console.error("Error fetching monitor state:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { monitorState };
+}
+
 export const generateReport = async (payload) => {
   try {
     const res = await axios.post(`${API_BASE_URL}/api/agents/report/generate`, payload);
