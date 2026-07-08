@@ -20,6 +20,7 @@ from agents.scribe import ScribeAgent
 from agents.knowledge_base import KnowledgeBase
 from agents.reflective_learning import ReflectiveLearningAgent
 from agents.memory import MemoryAgent
+from agents.analytics import AnalyticsAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -59,6 +60,12 @@ commander_agent.issue_detector_agent = issue_detector_agent
 
 sentinel_agent = SentinelAgent(commander_agent)
 intake_agent = IntakeAgent(sentinel_agent)
+
+analytics_agent = AnalyticsAgent(
+    memory_agent=memory_agent,
+    knowledge_base=knowledge_base,
+    commander_agent=commander_agent
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -191,4 +198,8 @@ def get_memory_status():
 @app.get("/api/agents/memory/search")
 def search_memory(query: str):
     results = memory_agent.semantic_search(query)
-    return {"status": "success", "data": results}
+    return {"status": "success", "data": results}
+
+@app.get("/api/agents/analytics/dashboard")
+def get_analytics_dashboard():
+    return {"status": "success", "data": analytics_agent.generate_dashboard_metrics()}

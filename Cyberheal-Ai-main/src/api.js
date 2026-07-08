@@ -152,3 +152,25 @@ export const searchMemory = async (query) => {
   }
   return [];
 };
+
+export function useAnalyticsData() {
+  const [analyticsData, setAnalyticsData] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/agents/analytics/dashboard`)
+        .then(res => {
+          if (res.data && res.data.data) {
+            setAnalyticsData(res.data.data);
+          }
+        })
+        .catch(err => console.error("Error fetching analytics data:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 10000); // Fetch every 10s
+    return () => clearInterval(interval);
+  }, []);
+
+  return { analyticsData };
+}
