@@ -15,6 +15,8 @@ from agents.planner import PlannerAgent
 from agents.guardian import GuardianAgent
 from agents.executor import ExecutorAgent
 from agents.verifier import VerifierAgent
+from agents.final_status import FinalStatusAgent
+from agents.scribe import ScribeAgent
 
 app = FastAPI(title="SOC Dashboard API")
 
@@ -26,6 +28,8 @@ planner_agent = PlannerAgent()
 guardian_agent = GuardianAgent()
 executor_agent = ExecutorAgent()
 verifier_agent = VerifierAgent()
+scribe_agent = ScribeAgent()
+final_status_agent = FinalStatusAgent(scribe_agent=scribe_agent)
 
 # Create commander first, we will inject it into issue detector, then inject issue detector back
 commander_agent = CommanderAgent(
@@ -35,7 +39,9 @@ commander_agent = CommanderAgent(
     planner_agent=planner_agent,
     guardian_agent=guardian_agent,
     executor_agent=executor_agent,
-    verifier_agent=verifier_agent
+    verifier_agent=verifier_agent,
+    final_status_agent=final_status_agent,
+    scribe_agent=scribe_agent
 )
 issue_detector_agent = IssueDetectorAgent(commander_agent=commander_agent)
 commander_agent.issue_detector_agent = issue_detector_agent
@@ -149,4 +155,12 @@ def get_executor_status():
 
 @app.get("/api/agents/verifier/status")
 def get_verifier_status():
-    return {"status": "success", "metrics": verifier_agent.metrics}
+    return {"status": "success", "metrics": verifier_agent.metrics}
+
+@app.get("/api/agents/final_status/status")
+def get_final_status_status():
+    return {"status": "success", "metrics": final_status_agent.metrics}
+
+@app.get("/api/agents/scribe/status")
+def get_scribe_status():
+    return {"status": "success", "logs_count": len(scribe_agent.logs)}
