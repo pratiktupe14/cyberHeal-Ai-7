@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useNotificationState } from '../../api';
 
 export default function EnterpriseLayout({ children }) {
   const location = useLocation();
+  const { notificationState } = useNotificationState();
+  const [showNotifications, setShowNotifications] = useState(false);
   const isActive = (path) => location.pathname === path;
   
   const getLinkClasses = (path) => {
@@ -71,9 +74,32 @@ export default function EnterpriseLayout({ children }) {
 </div>
 </div>
 <div className="flex items-center gap-4">
-<button className="p-2 hover:bg-surface-container rounded-full transition-all text-on-surface-variant">
-<span className="material-symbols-outlined" data-icon="notifications">notifications</span>
-</button>
+<div className="relative">
+  <button 
+    onClick={() => setShowNotifications(!showNotifications)}
+    className="p-2 hover:bg-surface-container rounded-full transition-all text-on-surface-variant relative">
+  <span className="material-symbols-outlined" data-icon="notifications">notifications</span>
+  {notificationState?.length > 0 && (
+    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-error rounded-full border border-surface"></span>
+  )}
+  </button>
+  {showNotifications && (
+    <div className="absolute right-0 mt-2 w-80 bg-surface-container-high rounded-xl card-shadow border border-outline-variant/30 overflow-hidden z-50">
+      <div className="p-4 border-b border-outline-variant/30 font-bold text-on-surface">Notifications</div>
+      <div className="max-h-64 overflow-y-auto">
+        {notificationState?.length > 0 ? (
+          notificationState.map((notif, idx) => (
+            <div key={idx} className="p-3 border-b border-outline-variant/10 text-body-sm text-on-surface hover:bg-surface-container transition-colors">
+              {notif.Message || "New Alert"}
+            </div>
+          ))
+        ) : (
+          <div className="p-4 text-center text-on-surface-variant text-body-sm">No new notifications</div>
+        )}
+      </div>
+    </div>
+  )}
+</div>
 <button className="p-2 hover:bg-surface-container rounded-full transition-all text-on-surface-variant">
 <span className="material-symbols-outlined" data-icon="help">help</span>
 </button>

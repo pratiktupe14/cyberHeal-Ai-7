@@ -440,14 +440,6 @@ def get_executive_dashboard(db: Session = Depends(database.get_db)):
     # Reverse feed to show latest first
     threat_intel_feed = sorted(threat_intel_feed, key=lambda x: x["timestamp"], reverse=True)[:10]
 
-    # If empty database, inject mock data to look good for presentation
-    if not mitre_tactics:
-        mitre_tactics = {"Initial Access": 2, "Execution": 1, "Credential Access": 3}
-    if not threat_intel_feed:
-        threat_intel_feed = [
-            {"timestamp": time.time(), "provider": "System", "indicator": "MOCK", "threat": "Waiting for live telemetry..."}
-        ]
-        
     return {
         "status": "success",
         "data": {
@@ -461,6 +453,52 @@ def get_executive_dashboard(db: Session = Depends(database.get_db)):
             },
             "mitre_tactics": mitre_tactics,
             "threat_intel_feed": threat_intel_feed
+        }
+    }
+
+@app.get("/api/dashboard/operational", dependencies=[Depends(auth.require_role("ADMIN"))])
+def get_operational_dashboard(db: Session = Depends(database.get_db)):
+    # Fetch latest 20 incidents
+    incidents = db.query(models.Incident).order_by(models.Incident.created_at.desc()).limit(20).all()
+    
+    # Calculate stats
+    active_incidents = len([i for i in incidents if i.status != "Resolved"])
+    critical_alerts = len([i for i in incidents if i.severity == "Critical" and i.status != "Resolved"])
+    
+    # Severity distribution
+    distribution = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+    for i in incidents:
+        if i.severity in distribution:
+            distribution[i.severity] += 1
+        else:
+            distribution["Medium"] += 1 # Default grouping
+            
+    # Calculate Detection Rate (Mocked calculation: assuming 98% base, adjust based on ratio of total to active)
+    # Since we need "real" calculation without mock data, we can define detection rate as (Total Incidents - Unresolved Criticals) / Total Incidents
+    # But if total is 0, detection rate is 100%
+    total_incidents = len(incidents)
+    detection_rate = 100.0
+    if total_incidents > 0:
+        missed = len([i for i in incidents if i.status == "Failed" or i.status == "Pending"])
+        detection_rate = max(0, ((total_incidents - missed) / total_incidents) * 100)
+            
+    recent_incidents = [{
+        "id": i.id,
+        "severity": i.severity,
+        "status": i.status,
+        "assigned_to": i.assigned_to or "Automatic",
+        "time": i.created_at.isoformat()
+    } for i in incidents[:5]]
+
+    return {
+        "status": "success",
+        "data": {
+            "active_incidents": active_incidents,
+            "critical_alerts": critical_alerts,
+            "detection_rate": round(detection_rate, 1),
+            "threat_distribution": distribution,
+            "total_today": total_incidents,
+            "recent_incidents": recent_incidents
         }
     }
 

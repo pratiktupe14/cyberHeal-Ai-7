@@ -126,6 +126,26 @@ export function useExecutiveDashboard() {
   return { executiveData };
 }
 
+export function useOperationalDashboard() {
+  const [operationalData, setOperationalData] = useState(null);
+
+  useEffect(() => {
+    const fetchState = () => {
+      axios.get(`${API_BASE_URL}/api/dashboard/operational`, { headers: { Authorization: "Bearer MOCK" } })
+        .then(res => {
+          if (res.data && res.data.data) setOperationalData(res.data.data);
+        })
+        .catch(err => console.error("Error fetching operational dashboard:", err));
+    };
+
+    fetchState();
+    const interval = setInterval(fetchState, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { operationalData };
+}
+
 // --- Remaining Hooks (REST) ---
 
 export function useReflectiveLearningState() {

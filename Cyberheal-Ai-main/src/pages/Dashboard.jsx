@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
 import ExecutiveDashboard from '../components/ExecutiveDashboard';
-import { useLogs } from '../api';
+import { useLogs, useOperationalDashboard, useGlobalAgentState, useMonitorState } from '../api';
 
 export default function Dashboard() {
   const { logs } = useLogs();
+  const { operationalData } = useOperationalDashboard();
+  const { globalState } = useGlobalAgentState();
+  const { monitorState } = useMonitorState();
   const [view, setView] = useState('operational');
   
   const getLevelColor = (level) => {
@@ -55,10 +58,9 @@ export default function Dashboard() {
 <span className="p-2 rounded-lg bg-error-container text-on-error-container">
 <span className="material-symbols-outlined" data-icon="warning">warning</span>
 </span>
-<span className="text-label-md text-error font-bold">+2.4%</span>
 </div>
 <p className="text-on-surface-variant text-label-md font-medium">Active Incidents</p>
-<h3 className="text-headline-md font-bold mt-1">12</h3>
+<h3 className="text-headline-md font-bold mt-1">{operationalData?.active_incidents ?? '-'}</h3>
 </div>
 {/* KPI 2 */}
 <div className="bg-surface-container-lowest p-5 rounded-xl card-shadow border border-outline-variant/20">
@@ -66,10 +68,9 @@ export default function Dashboard() {
 <span className="p-2 rounded-lg bg-tertiary-container text-on-tertiary-container">
 <span className="material-symbols-outlined" data-icon="verified_user">verified_user</span>
 </span>
-<span className="text-label-md text-tertiary font-bold">Stable</span>
 </div>
 <p className="text-on-surface-variant text-label-md font-medium">Threat Detection Rate</p>
-<h3 className="text-headline-md font-bold mt-1">99.8%</h3>
+<h3 className="text-headline-md font-bold mt-1">{operationalData ? `${operationalData.detection_rate}%` : '-'}</h3>
 </div>
 {/* KPI 3 */}
 <div className="bg-surface-container-lowest p-5 rounded-xl card-shadow border border-outline-variant/20 border-t-2 border-t-primary">
@@ -77,10 +78,9 @@ export default function Dashboard() {
 <span className="p-2 rounded-lg bg-primary-container text-on-primary-container">
 <span className="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
 </span>
-<span className="text-label-md text-primary font-bold">24 Active</span>
 </div>
 <p className="text-on-surface-variant text-label-md font-medium">AI Agent Status</p>
-<h3 className="text-headline-md font-bold mt-1">100%</h3>
+<h3 className="text-headline-md font-bold mt-1">{globalState ? `${Object.values(globalState).filter(a => a.status === 'Active' || a.status === 'Idle').length}/${Object.keys(globalState).length} Active` : '-'}</h3>
 </div>
 {/* KPI 4 */}
 <div className="bg-surface-container-lowest p-5 rounded-xl card-shadow border border-outline-variant/20">
@@ -88,10 +88,9 @@ export default function Dashboard() {
 <span className="p-2 rounded-lg bg-secondary-container text-on-secondary-container">
 <span className="material-symbols-outlined" data-icon="health_and_safety">health_and_safety</span>
 </span>
-<span className="text-label-md text-secondary font-bold">Good</span>
 </div>
 <p className="text-on-surface-variant text-label-md font-medium">System Health</p>
-<h3 className="text-headline-md font-bold mt-1">94%</h3>
+<h3 className="text-headline-md font-bold mt-1">{monitorState?.overall_status ?? '-'}</h3>
 </div>
 {/* KPI 5 */}
 <div className="bg-surface-container-lowest p-5 rounded-xl card-shadow border border-outline-variant/20 bg-error/5 border-error/20">
@@ -101,7 +100,7 @@ export default function Dashboard() {
 </span>
 </div>
 <p className="text-error text-label-md font-bold">Critical Alerts</p>
-<h3 className="text-headline-md font-bold mt-1 text-error">03</h3>
+<h3 className="text-headline-md font-bold mt-1 text-error">{operationalData?.critical_alerts ?? '-'}</h3>
 </div>
 </div>
 {/* Main Content Grid */}
@@ -109,21 +108,13 @@ export default function Dashboard() {
 {/* Center Section: Map & Table */}
 <div className="lg:col-span-2 space-y-gutter">
 {/* World Threat Map */}
-<div className="bg-surface-container-lowest rounded-xl card-shadow overflow-hidden border border-outline-variant/20 relative group h-[380px]">
+<div className="bg-surface-container-lowest rounded-xl card-shadow overflow-hidden border border-outline-variant/20 relative group h-[380px] flex items-center justify-center">
 <div className="absolute top-4 left-4 z-10 flex flex-col gap-1">
 <h4 className="font-headline-sm text-on-surface">Global Threat Map</h4>
 <p className="text-label-md text-on-surface-variant">Real-time geo-spatial analysis</p>
 </div>
-<div className="absolute inset-0 bg-cover bg-center" data-alt="A sophisticated digital world map with dark gray landmasses and a light glowing cyan grid overlay. Dozens of animated pulsing red and blue data nodes represent threat activity. Soft glowing light trails connect several major cities, creating a high-tech cybersecurity visualization. The style is clean, corporate modern, and highly technical." style={{ backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuB5B5dnDUJNBPWA2-U1DdgK1DdbQsg5SLqk5W-SweZ7xNxGhTvX7kwfRnfThf-cLVb91VWm_BRKwUU0sdWXR5r7mFprZ_t_DHrpgWxU2Go1O1OSulvRCgPvFu6epz1YvY791xSlN1g6kjLJHko0L3r952EbHDeIuovePAJ5Z-FVV7DLaRCkJFxFlrFHqFpoRn7Oau8_JK0ZS-OQzB0XOTuRTfknNsRQNjgE4G6Er4sd9QRi166RFhHa')` }}></div>
-<div className="absolute bottom-4 left-4 z-10 flex gap-4">
-<div className="glass px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-2">
-<div className="w-2 h-2 rounded-full bg-error"></div>
-<span className="text-label-md font-medium text-on-surface">DDOS Attack (NY)</span>
-</div>
-<div className="glass px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-2">
-<div className="w-2 h-2 rounded-full bg-primary"></div>
-<span className="text-label-md font-medium text-on-surface">Infiltration blocked</span>
-</div>
+<div className="text-on-surface-variant text-body-lg font-medium">
+  No live telemetry available
 </div>
 </div>
 {/* Real-time Incident Table */}
@@ -144,48 +135,32 @@ export default function Dashboard() {
 </tr>
 </thead>
 <tbody className="divide-y divide-outline-variant/20 text-body-md">
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="px-6 py-4 font-mono-label text-primary">#INC-8892</td>
+{operationalData?.recent_incidents?.map((incident) => (
+<tr key={incident.id} className="hover:bg-surface-container-low/40 transition-colors">
+<td className="px-6 py-4 font-mono-label text-primary">#{incident.id.substring(0, 8)}</td>
 <td className="px-6 py-4">
-<span className="px-2 py-1 rounded-full bg-error/10 text-error text-[11px] font-bold">CRITICAL</span>
+<span className={`px-2 py-1 rounded-full text-[11px] font-bold ${
+  incident.severity === 'Critical' ? 'bg-error/10 text-error' :
+  incident.severity === 'High' ? 'bg-error-container/20 text-on-error-container' :
+  incident.severity === 'Medium' ? 'bg-secondary-container/20 text-on-secondary-container' :
+  'bg-surface-container-highest text-on-surface-variant'
+}`}>
+  {incident.severity.toUpperCase()}
+</span>
 </td>
 <td className="px-6 py-4">
 <div className="flex items-center gap-2">
-<div className="w-2 h-2 rounded-full bg-primary status-pulse"></div>
-                                                Mitigating
-                                            </div>
+  <div className={`w-2 h-2 rounded-full ${incident.status === 'Resolved' ? 'bg-tertiary' : 'bg-primary status-pulse'}`}></div>
+  {incident.status}
+</div>
 </td>
-<td className="px-6 py-4 text-on-surface-variant">Agent-Zephyr</td>
-<td className="px-6 py-4 text-right text-on-surface-variant">2m ago</td>
+<td className="px-6 py-4 text-on-surface-variant">{incident.assigned_to}</td>
+<td className="px-6 py-4 text-right text-on-surface-variant">{new Date(incident.time).toLocaleTimeString()}</td>
 </tr>
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="px-6 py-4 font-mono-label text-primary">#INC-8891</td>
-<td className="px-6 py-4">
-<span className="px-2 py-1 rounded-full bg-secondary-container/20 text-on-secondary-container text-[11px] font-bold">MEDIUM</span>
-</td>
-<td className="px-6 py-4">
-<div className="flex items-center gap-2">
-<div className="w-2 h-2 rounded-full bg-tertiary"></div>
-                                                Isolated
-                                            </div>
-</td>
-<td className="px-6 py-4 text-on-surface-variant">Agent-Nexus</td>
-<td className="px-6 py-4 text-right text-on-surface-variant">11m ago</td>
-</tr>
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="px-6 py-4 font-mono-label text-primary">#INC-8884</td>
-<td className="px-6 py-4">
-<span className="px-2 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-[11px] font-bold">LOW</span>
-</td>
-<td className="px-6 py-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-[16px] text-tertiary" data-icon="check_circle">check_circle</span>
-                                                Resolved
-                                            </div>
-</td>
-<td className="px-6 py-4 text-on-surface-variant">Automatic</td>
-<td className="px-6 py-4 text-right text-on-surface-variant">42m ago</td>
-</tr>
+))}
+{(!operationalData?.recent_incidents || operationalData.recent_incidents.length === 0) && (
+<tr><td colSpan="5" className="px-6 py-4 text-center text-on-surface-variant">No active incidents</td></tr>
+)}
 </tbody>
 </table>
 </div>
@@ -197,15 +172,29 @@ export default function Dashboard() {
 <div className="bg-surface-container-lowest p-6 rounded-xl card-shadow border border-outline-variant/20">
 <h4 className="font-headline-sm text-on-surface mb-6">Threat Distribution</h4>
 <div className="relative flex justify-center py-4">
-{/* SVG Chart Simulation */}
-<svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 36 36">
-<path className="text-outline-variant/20" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="100, 100" strokeWidth="4"></path>
-<path className="text-error" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="25, 100" strokeLinecap="round" strokeWidth="4"></path>
-<path className="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="45, 100" strokeDashoffset="-25" strokeLinecap="round" strokeWidth="4"></path>
-<path className="text-tertiary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="30, 100" strokeDashoffset="-70" strokeLinecap="round" strokeWidth="4"></path>
-</svg>
+{/* SVG Chart Dynamic */}
+{operationalData ? (() => {
+  const total = operationalData.total_today || 1; // Prevent division by zero
+  const dist = operationalData.threat_distribution || {};
+  const c = dist["Critical"] || 0;
+  const h = dist["High"] || 0;
+  const m = dist["Medium"] || 0;
+  
+  const cPct = (c / total) * 100;
+  const hPct = (h / total) * 100;
+  const mPct = (m / total) * 100;
+  
+  return (
+    <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 36 36">
+    <path className="text-outline-variant/20" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="100, 100" strokeWidth="4"></path>
+    <path className="text-error" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${cPct}, 100`} strokeLinecap="round" strokeWidth="4"></path>
+    <path className="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${hPct}, 100`} strokeDashoffset={`-${cPct}`} strokeLinecap="round" strokeWidth="4"></path>
+    <path className="text-tertiary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${mPct}, 100`} strokeDashoffset={`-${cPct + hPct}`} strokeLinecap="round" strokeWidth="4"></path>
+    </svg>
+  );
+})() : <div className="w-40 h-40 rounded-full border-4 border-outline-variant/20"></div>}
 <div className="absolute inset-0 flex flex-col items-center justify-center">
-<span className="text-headline-md font-bold">142</span>
+<span className="text-headline-md font-bold">{operationalData?.total_today ?? 0}</span>
 <span className="text-label-md text-on-surface-variant">Total Today</span>
 </div>
 </div>
@@ -213,23 +202,23 @@ export default function Dashboard() {
 <div className="flex items-center justify-between">
 <div className="flex items-center gap-2">
 <div className="w-3 h-3 rounded-full bg-error"></div>
-<span className="text-body-md">Critical Vulnerability</span>
+<span className="text-body-md">Critical</span>
 </div>
-<span className="text-body-md font-bold">25%</span>
+<span className="text-body-md font-bold">{operationalData?.threat_distribution?.["Critical"] || 0}</span>
 </div>
 <div className="flex items-center justify-between">
 <div className="flex items-center gap-2">
 <div className="w-3 h-3 rounded-full bg-primary"></div>
-<span className="text-body-md">Anomalous Activity</span>
+<span className="text-body-md">High</span>
 </div>
-<span className="text-body-md font-bold">45%</span>
+<span className="text-body-md font-bold">{operationalData?.threat_distribution?.["High"] || 0}</span>
 </div>
 <div className="flex items-center justify-between">
 <div className="flex items-center gap-2">
 <div className="w-3 h-3 rounded-full bg-tertiary"></div>
-<span className="text-body-md">Policy Violation</span>
+<span className="text-body-md">Medium/Low</span>
 </div>
-<span className="text-body-md font-bold">30%</span>
+<span className="text-body-md font-bold">{(operationalData?.threat_distribution?.["Medium"] || 0) + (operationalData?.threat_distribution?.["Low"] || 0)}</span>
 </div>
 </div>
 </div>
