@@ -6,6 +6,8 @@ import asyncio
 import subprocess
 import json
 import logging
+import time
+import os
 
 import database
 import models
@@ -13,7 +15,7 @@ import auth
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 limiter = Limiter(key_func=get_remote_address)
@@ -346,6 +348,72 @@ def generate_report(request: dict):
         path = report_agent.export_pdf(data, filename)
         
     return {"status": "success", "file": path, "data": data}
+
+@app.get("/api/agents/report/download")
+def download_comprehensive_report(format: str = "pdf"):
+    active_incidents = [inc for inc in sentinel_agent.active_threats.values() if inc.get("status") == "DETECTED"]
+    resolved_incidents = [inc for inc in sentinel_agent.active_threats.values() if inc.get("status") == "RESOLVED"]
+    agent_status = get_global_status()
+    system_health = monitor_agent.get_status()
+    audit_logs = scribe_agent.logs
+    
+    data = report_agent.generate_comprehensive_report(
+        active_incidents, resolved_incidents, agent_status, system_health, audit_logs
+    )
+    
+    filename = f"comprehensive_report_{int(time.time())}.{format}"
+    
+    if format == "csv":
+        path = report_agent.export_csv(data, filename)
+    else:
+        path = report_agent.export_pdf(data, filename)
+        
+    if path and os.path.exists(path):
+        return FileResponse(path, filename=filename)
+    return JSONResponse(status_code=500, content={"error": "Failed to generate report"})
+
+@app.post("/api/scan/force")
+def force_scan(background_tasks: BackgroundTasks):
+    try:
+        # Fetch actual system logs (e.g. recent security/system events)
+        logs = get_windows_logs("Security", 10)
+        if not logs:
+            logs = get_windows_logs("System", 10)
+        
+        threats_found = False
+        details = []
+        incident_id = None
+        
+        # Feed the logs to Intake agent which will pass them to Sentinel
+        if isinstance(logs, list):
+            for log_entry in logs:
+                event_data = {
+                    "ip": "127.0.0.1", 
+                    "failedAttempts": 0, 
+                    "type": "LOG_ANOMALY", 
+                    "raw_data": str(log_entry)
+                }
+                raw_str = str(log_entry).lower()
+                if "error" in raw_str or "fail" in raw_str:
+                    event_data["failedAttempts"] = 6
+                
+                i_id, state = intake_agent.receive_event("force_scan", event_data)
+                
+                if i_id:
+                    threats_found = True
+                    if not incident_id:
+                        incident_id = i_id
+                    details.append(f"Threat detected in log {log_entry.get('Id', 'unknown')}")
+        
+        if threats_found and incident_id:
+            # Trigger full AI pipeline workflow on the first incident found
+            background_tasks.add_task(commander_agent.execute_plan, incident_id)
+            return {"status": "success", "threats_found": True, "message": "Threats detected. AI workflow activated.", "details": details}
+        else:
+            return {"status": "success", "threats_found": False, "message": "No threats detected."}
+    except Exception as e:
+        logging.error(f"Error during force scan: {e}")
+        return {"status": "error", "message": str(e)}
 
 @app.get("/api/agents/monitor/status")
 def get_monitor_status():

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
 import ExecutiveDashboard from '../components/ExecutiveDashboard';
-import { useLogs, useOperationalDashboard, useGlobalAgentState, useMonitorState } from '../api';
+import { useLogs, useOperationalDashboard, useGlobalAgentState, useMonitorState, forceScan, exportReport } from '../api';
 
 export default function Dashboard() {
   const { logs } = useLogs();
@@ -9,6 +9,35 @@ export default function Dashboard() {
   const { globalState } = useGlobalAgentState();
   const { monitorState } = useMonitorState();
   const [view, setView] = useState('operational');
+  const [isScanning, setIsScanning] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleForceScan = async () => {
+    setIsScanning(true);
+    try {
+      const res = await forceScan();
+      if (res.threats_found) {
+        alert(res.message + "\nDetails: " + (res.details ? res.details.join(", ") : ''));
+      } else {
+        alert(res.message || "No threats detected.");
+      }
+    } catch (err) {
+      alert("Failed to run force scan.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleExportReport = async () => {
+    setIsExporting(true);
+    try {
+      await exportReport('pdf');
+    } catch (err) {
+      alert("Failed to export report.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
   
   const getLevelColor = (level) => {
     switch(level?.toLowerCase()) {
@@ -35,13 +64,19 @@ export default function Dashboard() {
   <span className="material-symbols-outlined text-[18px]" data-icon="dashboard">dashboard</span>
   {view === 'operational' ? 'Executive View' : 'Operational View'}
 </button>
-<button className="flex items-center gap-2 px-4 py-2 border border-outline-variant text-primary font-medium rounded-lg hover:bg-surface-container transition-all">
+<button 
+  onClick={handleExportReport}
+  disabled={isExporting}
+  className="flex items-center gap-2 px-4 py-2 border border-outline-variant text-primary font-medium rounded-lg hover:bg-surface-container transition-all disabled:opacity-50">
 <span className="material-symbols-outlined text-[18px]" data-icon="download">download</span>
-                        Export Report
+                        {isExporting ? 'Exporting...' : 'Export Report'}
                     </button>
-<button className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary font-medium rounded-lg shadow-sm hover:translate-y-[-1px] active:translate-y-0 transition-all">
+<button 
+  onClick={handleForceScan}
+  disabled={isScanning}
+  className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary font-medium rounded-lg shadow-sm hover:translate-y-[-1px] active:translate-y-0 transition-all disabled:opacity-50">
 <span className="material-symbols-outlined text-[18px]" data-icon="bolt">bolt</span>
-                        Force Scan
+                        {isScanning ? 'Scanning...' : 'Force Scan'}
                     </button>
 </div>
 </section>

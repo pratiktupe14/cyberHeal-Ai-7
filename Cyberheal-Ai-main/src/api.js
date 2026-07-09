@@ -269,3 +269,32 @@ export const generateReport = async (payload) => {
     throw err;
   }
 };
+
+export const forceScan = async () => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/api/scan/force`);
+        return response.data;
+    } catch (error) {
+        console.error("Force scan error:", error);
+        throw error;
+    }
+};
+
+export const exportReport = async (format = 'pdf') => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/agents/report/download?format=${format}`, {
+            responseType: 'blob'
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `comprehensive_report_${Date.now()}.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        return { status: "success" };
+    } catch (error) {
+        console.error("Export report error:", error);
+        throw error;
+    }
+};
