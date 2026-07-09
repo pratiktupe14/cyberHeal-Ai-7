@@ -9,3 +9,4 @@ python-dotenv
 slowapi
 prometheus-fastapi-instrumentator
 fpdf2
+psutil

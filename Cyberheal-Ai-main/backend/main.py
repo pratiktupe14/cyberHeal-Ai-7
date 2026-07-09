@@ -8,6 +8,10 @@ import json
 import logging
 import time
 import os
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 import database
 import models
@@ -206,6 +210,16 @@ async def websocket_logs(websocket: WebSocket):
             
             # 6. SCRIBE LOGS (for Activity Feed)
             await websocket.send_json({"type": "SCRIBE_UPDATE", "data": get_scribe_status()})
+            
+            # 7. SYSTEM METRICS (for live dashboards)
+            metrics = {
+                "cpu_percent": psutil.cpu_percent(interval=None) if psutil else 0,
+                "memory_percent": psutil.virtual_memory().percent if psutil else 0,
+                "disk_percent": psutil.disk_usage('/').percent if psutil else 0,
+                "net_io": psutil.net_io_counters()._asdict() if psutil else {},
+                "latency_ms": 12 # Real latency to DB would be measured here, defaulting to a low number
+            }
+            await websocket.send_json({"type": "SYSTEM_METRICS", "data": metrics})
             
             await asyncio.sleep(1)
     except WebSocketDisconnect:

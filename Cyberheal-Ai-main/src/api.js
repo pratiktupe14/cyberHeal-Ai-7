@@ -14,6 +14,7 @@ let latestState = {
   SYSTEM_HEALTH: null,
   NOTIFICATIONS: null,
   SCRIBE_UPDATE: null,
+  SYSTEM_METRICS: null,
   isConnected: false
 };
 
@@ -98,6 +99,11 @@ export function useGlobalAgentState() {
 export function useMonitorState() {
   const state = useSharedWebSocket();
   return { monitorState: state.SYSTEM_HEALTH };
+}
+
+export function useSystemMetrics() {
+  const state = useSharedWebSocket();
+  return { systemMetrics: state.SYSTEM_METRICS };
 }
 
 export function useNotificationState() {

@@ -1,16 +1,98 @@
 import React, { useState, useEffect } from 'react';
-import { useLogs } from '../api';
+import { useLogs, useGlobalAgentState, useMonitorState, useOperationalDashboard, useSystemMetrics, exportReport } from '../api';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
 
 export default function LiveMonitoring() {
   const [showToast, setShowToast] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  
   const { logs } = useLogs();
+  const { globalState } = useGlobalAgentState();
+  const { monitorState } = useMonitorState();
+  const { operationalData } = useOperationalDashboard();
+  const { systemMetrics } = useSystemMetrics();
+
+  const handleExportReport = async () => {
+    setIsExporting(true);
+    try {
+      await exportReport('pdf');
+    } catch (err) {
+      alert("Failed to export report.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const getAttackOrigins = () => {
+    if (!logs || logs.length === 0) return [];
+    const ips = {};
+    const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g;
+    
+    logs.forEach(log => {
+      const msg = log.Message || '';
+      const found = msg.match(ipRegex);
+      if (found) {
+        found.forEach(ip => {
+          ips[ip] = (ips[ip] || 0) + 1;
+        });
+      }
+    });
+
+    return Object.keys(ips).map(ip => ({ip, count: ips[ip]})).sort((a,b) => b.count - a.count).slice(0,3);
+  };
+  const attackOrigins = getAttackOrigins();
+
+  const getSeverityBadge = (severity) => {
+    switch(severity?.toLowerCase()) {
+      case 'critical': return <span className="px-2 py-1 bg-error/10 text-error text-[10px] font-bold rounded uppercase">Critical</span>;
+      case 'high': return <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">High</span>;
+      case 'medium': return <span className="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded uppercase">Medium</span>;
+      default: return <span className="px-2 py-1 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded uppercase">Low</span>;
+    }
+  };
+
+  const getStatusStep = (status) => {
+    const s = status?.toLowerCase() || '';
+    if (s.includes('detect') || s.includes('intake')) return 1;
+    if (s.includes('rca') || s.includes('analy')) return 2;
+    if (s.includes('plan')) return 3;
+    if (s.includes('valid') || s.includes('mitigat') || s.includes('exec')) return 4;
+    if (s.includes('recover')) return 5;
+    if (s.includes('resolv') || s.includes('close')) return 6;
+    return 1;
+  };
+  
+  const latestIncident = operationalData?.recent_incidents?.[0];
+  const currentStep = latestIncident ? getStatusStep(latestIncident.status) : 0;
+
+  const renderAgentIcon = (name) => {
+    if (name.includes('Sentinel')) return 'visibility';
+    if (name.includes('Causor')) return 'psychology';
+    if (name.includes('Commander') || name.includes('Plan')) return 'architecture';
+    if (name.includes('Intake') || name.includes('Guard')) return 'gpp_good';
+    if (name.includes('Scribe') || name.includes('Report')) return 'edit_note';
+    return 'smart_toy';
+  };
+  const renderAgentColor = (name) => {
+    if (name.includes('Sentinel')) return 'text-primary';
+    if (name.includes('Causor')) return 'text-secondary';
+    if (name.includes('Commander') || name.includes('Plan')) return 'text-tertiary';
+    if (name.includes('Intake') || name.includes('Guard')) return 'text-error';
+    if (name.includes('Scribe') || name.includes('Report')) return 'text-outline';
+    return 'text-primary';
+  };
+  const renderAgentBg = (name) => {
+    if (name.includes('Sentinel')) return 'bg-primary';
+    if (name.includes('Causor')) return 'bg-secondary';
+    if (name.includes('Commander') || name.includes('Plan')) return 'bg-tertiary';
+    if (name.includes('Intake') || name.includes('Guard')) return 'bg-error';
+    if (name.includes('Scribe') || name.includes('Report')) return 'bg-on-surface-variant';
+    return 'bg-primary';
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowToast(true);
-    }, 3000);
-    return () => clearTimeout(timer);
+    // Optionally keep toast for important alerts, but removing the auto-show for now
+    // as it might be confusing if it shows a fake alert.
   }, []);
 
   return (
@@ -30,9 +112,12 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-sm">filter_list</span>
 <span className="font-label-md">Filter View</span>
 </button>
-<button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all shadow-md">
+<button 
+  onClick={handleExportReport}
+  disabled={isExporting}
+  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all shadow-md disabled:opacity-50">
 <span className="material-symbols-outlined text-sm">download</span>
-<span className="font-label-md">Export Report</span>
+<span className="font-label-md">{isExporting ? 'Exporting...' : 'Export Report'}</span>
 </button>
 </div>
 </div>
@@ -45,11 +130,10 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-error text-xl">gpp_maybe</span>
 </div>
 <div className="flex items-end gap-2">
-<span className="text-headline-lg font-bold">12</span>
-<span className="text-error font-mono-label mb-1.5">+3 (2h)</span>
+<span className="text-headline-lg font-bold">{operationalData?.active_incidents || (operationalData?.active_incidents === 0 ? '0' : '--')}</span>
 </div>
 <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-error w-3/4"></div>
+<div className="h-full bg-error" style={{width: (operationalData?.active_incidents > 0) ? '100%' : '0%'}}></div>
 </div>
 </div>
 {/*  KPI Card 2: Monitored Assets  */}
@@ -59,8 +143,8 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-primary text-xl">storage</span>
 </div>
 <div className="flex items-end gap-2">
-<span className="text-headline-lg font-bold">4.2k</span>
-<span className="text-primary font-mono-label mb-1.5">Stable</span>
+<span className="text-headline-lg font-bold">{monitorState ? Object.keys(monitorState).length : '--'}</span>
+<span className="text-primary font-mono-label mb-1.5">Nodes</span>
 </div>
 <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
 <div className="h-full bg-primary w-full"></div>
@@ -73,11 +157,10 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-error text-xl">priority_high</span>
 </div>
 <div className="flex items-end gap-2">
-<span className="text-headline-lg font-bold">04</span>
-<span className="text-on-surface-variant font-mono-label mb-1.5">Normal</span>
+<span className="text-headline-lg font-bold">{operationalData?.critical_alerts || (operationalData?.critical_alerts === 0 ? '0' : '--')}</span>
 </div>
 <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-error w-1/4"></div>
+<div className="h-full bg-error" style={{width: (operationalData?.critical_alerts > 0) ? '100%' : '0%'}}></div>
 </div>
 </div>
 {/*  KPI Card 4: System Health  */}
@@ -87,11 +170,10 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-tertiary text-xl">favorite</span>
 </div>
 <div className="flex items-end gap-2">
-<span className="text-headline-lg font-bold">99%</span>
-<span className="text-tertiary font-mono-label mb-1.5">Optimal</span>
+<span className="text-headline-lg font-bold">{systemMetrics ? Math.max(0, Math.round(100 - (systemMetrics.cpu_percent + systemMetrics.memory_percent) / 2)) : '--'}%</span>
 </div>
 <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-tertiary w-[99%]"></div>
+<div className="h-full bg-tertiary" style={{width: systemMetrics ? `${Math.max(0, Math.round(100 - (systemMetrics.cpu_percent + systemMetrics.memory_percent) / 2))}%` : '0%'}}></div>
 </div>
 </div>
 {/*  KPI Card 5: AI Agents  */}
@@ -101,8 +183,8 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-secondary text-xl">bolt</span>
 </div>
 <div className="flex items-end gap-2">
-<span className="text-headline-lg font-bold">05</span>
-<span className="text-secondary font-mono-label mb-1.5">All Active</span>
+<span className="text-headline-lg font-bold">{globalState ? Object.values(globalState).filter(a => a.status !== 'Failed').length : '--'}</span>
+<span className="text-secondary font-mono-label mb-1.5">Active</span>
 </div>
 <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
 <div className="h-full bg-secondary w-full"></div>
@@ -115,8 +197,7 @@ export default function LiveMonitoring() {
 <span className="material-symbols-outlined text-tertiary text-xl">api</span>
 </div>
 <div className="flex items-end gap-2">
-<span className="text-headline-lg font-bold">24ms</span>
-<span className="text-tertiary font-mono-label mb-1.5">-2ms</span>
+<span className="text-headline-lg font-bold">{systemMetrics ? systemMetrics.latency_ms : '--'}ms</span>
 </div>
 <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
 <div className="h-full bg-tertiary w-full"></div>
@@ -146,9 +227,16 @@ export default function LiveMonitoring() {
 <div className="absolute bottom-6 left-6 glass-panel p-4 rounded-xl border border-outline-variant shadow-lg z-10">
 <div className="text-label-md font-bold text-on-surface-variant uppercase mb-2">Top Attack Origins</div>
 <div className="space-y-2">
+{attackOrigins.length > 0 ? attackOrigins.map((origin, idx) => (
+<div key={idx} className="flex justify-between gap-8 items-center">
+<span className="text-body-md font-medium">{origin.ip}</span>
+<span className="text-body-md font-mono-label text-error">{origin.count}</span>
+</div>
+)) : (
 <div className="flex justify-between gap-8 items-center">
-<span className="text-body-md font-medium">Moscow, RU</span>
-<span className="text-body-md font-mono-label text-error">4,211</span>
+<span className="text-body-md font-medium text-on-surface-variant">No active threats</span>
+</div>
+)}
 </div>
 <div className="flex justify-between gap-8 items-center">
 <span className="text-body-md font-medium">Shenzhen, CN</span>
@@ -206,7 +294,7 @@ export default function LiveMonitoring() {
     );
   })}
   {logs.length === 0 && (
-    <div className="text-center text-on-surface-variant p-4">Waiting for live events...</div>
+    <div className="text-center text-on-surface-variant p-4">No live events available.</div>
   )}
 </div>
 <button className="p-3 text-center text-primary font-label-md border-t border-outline-variant/30 hover:bg-surface-container transition-colors">
@@ -230,7 +318,7 @@ export default function LiveMonitoring() {
 <div className="relative group cursor-crosshair">
 <div className="flex justify-between items-end mb-4">
 <span className="text-label-md font-bold uppercase text-on-surface-variant">Inbound Bandwidth</span>
-<span className="text-body-md font-mono-label text-primary">48.2 Gbps</span>
+<span className="text-body-md font-mono-label text-primary">{systemMetrics ? (systemMetrics.net_io.bytes_recv / 1024 / 1024 / 1024).toFixed(2) + ' GB' : '--'}</span>
 </div>
 <div className="absolute bottom-0 w-full h-32 overflow-hidden flex items-end gap-1">
 <div className="w-full h-full bg-primary/5 rounded-t-lg relative">
@@ -242,8 +330,8 @@ export default function LiveMonitoring() {
 {/*  Frequency Chart Placeholder  */}
 <div className="relative group cursor-crosshair">
 <div className="flex justify-between items-end mb-4">
-<span className="text-label-md font-bold uppercase text-on-surface-variant">Request Frequency</span>
-<span className="text-body-md font-mono-label text-secondary">1.2M rps</span>
+<span className="text-label-md font-bold uppercase text-on-surface-variant">Logged Events</span>
+<span className="text-body-md font-mono-label text-secondary">{logs ? logs.length : '--'} total</span>
 </div>
 <div className="absolute bottom-0 w-full h-32 overflow-hidden flex items-end gap-1">
 <div className="w-full h-full bg-secondary/5 rounded-t-lg relative">
@@ -260,44 +348,44 @@ export default function LiveMonitoring() {
 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">CPU Load</span>
-<div className="w-12 h-12 rounded-full border-4 border-tertiary flex items-center justify-center text-tertiary font-bold text-xs">42%</div>
+<div className="w-12 h-12 rounded-full border-4 border-tertiary flex items-center justify-center text-tertiary font-bold text-xs">{systemMetrics ? systemMetrics.cpu_percent.toFixed(0) : '--'}%</div>
 <span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">HEALTHY</span>
 </div>
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">Memory</span>
-<div className="w-12 h-12 rounded-full border-4 border-amber-500 flex items-center justify-center text-amber-600 font-bold text-xs">88%</div>
-<span className="mt-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">Warning</span>
+<div className="w-12 h-12 rounded-full border-4 border-amber-500 flex items-center justify-center text-amber-600 font-bold text-xs">{systemMetrics ? systemMetrics.memory_percent.toFixed(0) : '--'}%</div>
+<span className={`mt-2 px-2 py-0.5 ${systemMetrics && systemMetrics.memory_percent > 80 ? 'bg-amber-100 text-amber-700' : 'bg-tertiary/10 text-tertiary'} text-[10px] font-bold rounded uppercase`}>{systemMetrics && systemMetrics.memory_percent > 80 ? 'Warning' : 'HEALTHY'}</span>
 </div>
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">FastAPI</span>
 <span className="material-symbols-outlined text-tertiary text-4xl mb-1">cloud_done</span>
-<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">HEALTHY</span>
+<span className={`mt-2 px-2 py-0.5 ${monitorState?.applications?.status === 'Healthy' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/10 text-error'} text-[10px] font-bold rounded uppercase`}>{monitorState?.applications?.status || 'HEALTHY'}</span>
 </div>
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">Supabase</span>
 <span className="material-symbols-outlined text-tertiary text-4xl mb-1">database</span>
-<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">HEALTHY</span>
+<span className={`mt-2 px-2 py-0.5 ${monitorState?.databases?.status === 'Healthy' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/10 text-error'} text-[10px] font-bold rounded uppercase`}>{monitorState?.databases?.status || 'HEALTHY'}</span>
 </div>
 {/*  Row 2  */}
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">Redis</span>
 <span className="material-symbols-outlined text-tertiary text-4xl mb-1">flash_on</span>
-<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">ONLINE</span>
+<span className={`mt-2 px-2 py-0.5 ${monitorState?.databases?.status === 'Healthy' ? 'bg-tertiary/10 text-tertiary' : 'bg-error/10 text-error'} text-[10px] font-bold rounded uppercase`}>{monitorState?.databases?.status === 'Healthy' ? 'ONLINE' : 'DEGRADED'}</span>
 </div>
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">Disk Space</span>
 <span className="material-symbols-outlined text-tertiary text-4xl mb-1">storage</span>
-<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">1.2 TB FREE</span>
+<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">{systemMetrics ? (100 - systemMetrics.disk_percent).toFixed(1) : '--'}% FREE</span>
 </div>
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">API Latency</span>
 <span className="material-symbols-outlined text-tertiary text-4xl mb-1">timer</span>
-<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">12MS</span>
+<span className="mt-2 px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">{systemMetrics ? systemMetrics.latency_ms : '--'}MS</span>
 </div>
 <div className="p-4 bg-surface rounded-xl border border-outline-variant/30 flex flex-col items-center text-center">
 <span className="text-label-md font-bold text-on-surface-variant mb-3">Firewall</span>
 <span className="material-symbols-outlined text-primary text-4xl mb-1">shield</span>
-<span className="mt-2 px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded">SECURE</span>
+<span className={`mt-2 px-2 py-0.5 ${monitorState?.endpoints?.status === 'Healthy' ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error'} text-[10px] font-bold rounded uppercase`}>{monitorState?.endpoints?.status === 'Healthy' ? 'SECURE' : 'VULNERABLE'}</span>
 </div>
 </div>
 </div>
@@ -306,121 +394,40 @@ export default function LiveMonitoring() {
 <div className="space-y-stack-md">
 <h3 className="font-headline-sm text-headline-sm">Active AI Agents</h3>
 <div className="grid grid-cols-1 md:grid-cols-5 gap-gutter">
-{/*  Sentinel Card  */}
-<div className="bento-card p-5 rounded-xxl flex flex-col">
-<div className="flex justify-between items-start mb-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-primary">visibility</span>
-<span className="font-bold">Sentinel</span>
-</div>
-<span className="flex items-center gap-1 text-[10px] font-bold text-tertiary">
-<span className="w-2 h-2 rounded-full bg-tertiary pulse-emerald"></span>
-                                LIVE
-                            </span>
-</div>
-<p className="text-label-md text-on-surface-variant mb-4 line-clamp-2">Scanning network perimeter for polymorphic malware variants...</p>
-<div className="mt-auto">
-<div className="flex justify-between text-[10px] text-outline mb-1">
-<span className="">Efficiency</span>
-<span className="">94%</span>
-</div>
-<div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-primary w-[94%]"></div>
-</div>
-</div>
-</div>
-{/*  Causor Card  */}
-<div className="bento-card p-5 rounded-xxl flex flex-col">
-<div className="flex justify-between items-start mb-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-secondary">psychology</span>
-<span className="font-bold">Causor</span>
-</div>
-<span className="flex items-center gap-1 text-[10px] font-bold text-tertiary">
-<span className="w-2 h-2 rounded-full bg-tertiary pulse-emerald"></span>
-                                LIVE
-                            </span>
-</div>
-<p className="text-label-md text-on-surface-variant mb-4 line-clamp-2">Analyzing root cause for recent API latency spike in node-v4.</p>
-<div className="mt-auto">
-<div className="flex justify-between text-[10px] text-outline mb-1">
-<span className="">Efficiency</span>
-<span className="">88%</span>
-</div>
-<div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-secondary w-[88%]"></div>
-</div>
-</div>
-</div>
-{/*  Planner Card  */}
-<div className="bento-card p-5 rounded-xxl flex flex-col">
-<div className="flex justify-between items-start mb-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-tertiary">architecture</span>
-<span className="font-bold">Planner</span>
-</div>
-<span className="flex items-center gap-1 text-[10px] font-bold text-tertiary">
-<span className="w-2 h-2 rounded-full bg-tertiary pulse-emerald"></span>
-                                LIVE
-                            </span>
-</div>
-<p className="text-label-md text-on-surface-variant mb-4 line-clamp-2">Orchestrating container migration to isolate infected nodes.</p>
-<div className="mt-auto">
-<div className="flex justify-between text-[10px] text-outline mb-1">
-<span className="">Efficiency</span>
-<span className="">91%</span>
-</div>
-<div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-tertiary w-[91%]"></div>
-</div>
-</div>
-</div>
-{/*  Guardian Card  */}
-<div className="bento-card p-5 rounded-xxl flex flex-col">
-<div className="flex justify-between items-start mb-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-error">gpp_good</span>
-<span className="font-bold">Guardian</span>
-</div>
-<span className="flex items-center gap-1 text-[10px] font-bold text-tertiary">
-<span className="w-2 h-2 rounded-full bg-tertiary pulse-emerald"></span>
-                                LIVE
-                            </span>
-</div>
-<p className="text-label-md text-on-surface-variant mb-4 line-clamp-2">Enforcing zero-trust protocols across dynamic asset groups.</p>
-<div className="mt-auto">
-<div className="flex justify-between text-[10px] text-outline mb-1">
-<span className="">Efficiency</span>
-<span className="">99%</span>
-</div>
-<div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-error w-[99%]"></div>
-</div>
-</div>
-</div>
-{/*  Scribe Card  */}
-<div className="bento-card p-5 rounded-xxl flex flex-col">
-<div className="flex justify-between items-start mb-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-outline">edit_note</span>
-<span className="font-bold">Scribe</span>
-</div>
-<span className="flex items-center gap-1 text-[10px] font-bold text-tertiary">
-<span className="w-2 h-2 rounded-full bg-tertiary pulse-emerald"></span>
-                                LIVE
-                            </span>
-</div>
-<p className="text-label-md text-on-surface-variant mb-4 line-clamp-2">Compiling real-time compliance audit for Incident INC-4022.</p>
-<div className="mt-auto">
-<div className="flex justify-between text-[10px] text-outline mb-1">
-<span className="">Efficiency</span>
-<span className="">85%</span>
-</div>
-<div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
-<div className="h-full bg-on-surface-variant w-[85%]"></div>
-</div>
-</div>
-</div>
+{globalState && Object.keys(globalState).length > 0 ? (
+  Object.entries(globalState).slice(0, 5).map(([agentName, agentData], idx) => {
+    const isLive = agentData.status !== 'Failed' && agentData.status !== 'Offline';
+    const statusText = isLive ? (agentData.status === 'Idle' ? 'IDLE' : 'LIVE') : 'OFFLINE';
+    const eff = agentData.success_rate ? Math.round(agentData.success_rate * 100) : 100;
+    
+    return (
+      <div key={idx} className="bento-card p-5 rounded-xxl flex flex-col">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-2">
+            <span className={`material-symbols-outlined ${renderAgentColor(agentName)}`}>{renderAgentIcon(agentName)}</span>
+            <span className="font-bold">{agentName.replace('Agent', '')}</span>
+          </div>
+          <span className={`flex items-center gap-1 text-[10px] font-bold ${isLive ? 'text-tertiary' : 'text-error'}`}>
+            <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-tertiary pulse-emerald' : 'bg-error'}`}></span>
+            {statusText}
+          </span>
+        </div>
+        <p className="text-label-md text-on-surface-variant mb-4 line-clamp-2">{agentData.current_task || 'Monitoring for new tasks...'}</p>
+        <div className="mt-auto">
+          <div className="flex justify-between text-[10px] text-outline mb-1">
+            <span className="">Efficiency</span>
+            <span className="">{eff}%</span>
+          </div>
+          <div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
+            <div className={`h-full ${renderAgentBg(agentName)}`} style={{width: `${eff}%`}}></div>
+          </div>
+        </div>
+      </div>
+    );
+  })
+) : (
+  <div className="text-on-surface-variant col-span-5 p-4 border rounded-xl border-outline-variant/30 text-center">No AI agents active.</div>
+)}
 </div>
 </div>
 {/*  Fourth Row: Incident Timeline & Table  */}
@@ -430,45 +437,43 @@ export default function LiveMonitoring() {
 <div className="flex justify-between items-center mb-8">
 <div>
 <h3 className="font-headline-sm text-headline-sm">Active Incident Lifecycle</h3>
-<p className="text-body-md text-on-surface-variant">Focus: <span className="font-bold text-error">INC-4022</span> - SQL Injection Cluster</p>
+<p className="text-body-md text-on-surface-variant">Focus: <span className="font-bold text-error">{latestIncident?.id || 'None'}</span> - {latestIncident ? 'Active Mitigation' : 'No active incidents'}</p>
 </div>
 <button className="text-primary font-bold text-label-md hover:underline transition-all">View Remediation Plan</button>
 </div>
 <div className="relative">
 {/*  Connecting Line  */}
 <div className="absolute top-5 left-0 w-full h-0.5 bg-surface-container z-0"></div>
-<div className="absolute top-5 left-0 w-3/5 h-0.5 bg-primary z-0"></div>
+<div className="absolute top-5 left-0 h-0.5 bg-primary z-0 transition-all duration-500" style={{width: `${Math.max(0, (currentStep - 1) * 20)}%`}}></div>
 <div className="relative z-10 flex justify-between">
-<div className="flex flex-col items-center">
-<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-lg">1</div>
-<span className="mt-3 font-bold text-label-md">Detection</span>
-<span className="text-[10px] text-outline font-mono-label">12:10 PM</span>
-</div>
-<div className="flex flex-col items-center">
-<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-lg">2</div>
-<span className="mt-3 font-bold text-label-md">RCA</span>
-<span className="text-[10px] text-outline font-mono-label">12:15 PM</span>
-</div>
-<div className="flex flex-col items-center">
-<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-lg">3</div>
-<span className="mt-3 font-bold text-label-md">Planning</span>
-<span className="text-[10px] text-outline font-mono-label">12:22 PM</span>
-</div>
-<div className="flex flex-col items-center">
-<div className="w-10 h-10 rounded-full border-4 border-primary bg-white text-primary flex items-center justify-center font-bold animate-pulse">4</div>
-<span className="mt-3 font-bold text-label-md text-primary">Validation</span>
-<span className="text-[10px] text-primary font-mono-label">IN PROGRESS</span>
-</div>
-<div className="flex flex-col items-center opacity-40">
-<div className="w-10 h-10 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-bold">5</div>
-<span className="mt-3 font-bold text-label-md">Recovery</span>
-<span className="text-[10px] text-outline font-mono-label">PENDING</span>
-</div>
-<div className="flex flex-col items-center opacity-40">
-<div className="w-10 h-10 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-bold">6</div>
-<span className="mt-3 font-bold text-label-md">Resolved</span>
-<span className="text-[10px] text-outline font-mono-label">--:--</span>
-</div>
+{[
+  { step: 1, label: 'Detection' },
+  { step: 2, label: 'RCA' },
+  { step: 3, label: 'Planning' },
+  { step: 4, label: 'Validation' },
+  { step: 5, label: 'Recovery' },
+  { step: 6, label: 'Resolved' }
+].map(s => {
+  const isCompleted = currentStep > s.step;
+  const isCurrent = currentStep === s.step;
+  const isPending = currentStep < s.step;
+  
+  return (
+    <div key={s.step} className={`flex flex-col items-center ${isPending ? 'opacity-40' : ''}`}>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+        isCurrent ? 'border-4 border-primary bg-white text-primary animate-pulse shadow-lg' :
+        isCompleted ? 'bg-primary text-white shadow-lg' :
+        'bg-surface-container text-on-surface-variant'
+      }`}>
+        {s.step}
+      </div>
+      <span className={`mt-3 font-bold text-label-md ${isCurrent ? 'text-primary' : ''}`}>{s.label}</span>
+      <span className={`text-[10px] font-mono-label ${isCurrent ? 'text-primary' : 'text-outline'}`}>
+        {isCompleted ? 'DONE' : isCurrent ? 'IN PROGRESS' : 'PENDING'}
+      </span>
+    </div>
+  );
+})}
 </div>
 </div>
 </div>
@@ -493,74 +498,31 @@ export default function LiveMonitoring() {
 </tr>
 </thead>
 <tbody className="divide-y divide-outline-variant/30">
-<tr className="hover:bg-surface-container-low transition-colors group">
-<td className="px-6 py-4 font-mono-label font-bold text-primary">INC-4022</td>
-<td className="px-6 py-4">
-<span className="px-2 py-1 bg-error/10 text-error text-[10px] font-bold rounded uppercase">Critical</span>
-</td>
-<td className="px-6 py-4 text-body-md font-medium">Mitigating</td>
-<td className="px-6 py-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-primary text-sm">visibility</span>
-<span className="text-body-md">Sentinel</span>
-</div>
-</td>
-<td className="px-6 py-4 text-body-md text-on-surface-variant">2m ago</td>
-<td className="px-6 py-4 text-right">
-<button className="material-symbols-outlined text-outline group-hover:text-primary">open_in_new</button>
-</td>
-</tr>
-<tr className="hover:bg-surface-container-low transition-colors group">
-<td className="px-6 py-4 font-mono-label font-bold text-primary">INC-4021</td>
-<td className="px-6 py-4">
-<span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">High</span>
-</td>
-<td className="px-6 py-4 text-body-md font-medium">RCA</td>
-<td className="px-6 py-4">
-<div className="flex items-center gap-2">
-<span className="material-symbols-outlined text-secondary text-sm">psychology</span>
-<span className="text-body-md">Causor</span>
-</div>
-</td>
-<td className="px-6 py-4 text-body-md text-on-surface-variant">14m ago</td>
-<td className="px-6 py-4 text-right">
-<button className="material-symbols-outlined text-outline group-hover:text-primary">open_in_new</button>
-</td>
-</tr>
-<tr className="hover:bg-surface-container-low transition-colors group">
-<td className="px-6 py-4 font-mono-label font-bold text-primary">INC-4019</td>
-<td className="px-6 py-4">
-<span className="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded uppercase">Medium</span>
-</td>
-<td className="px-6 py-4 text-body-md font-medium">Resolved</td>
-<td className="px-6 py-4">
-<div className="flex items-center gap-2 text-outline">
-<span className="material-symbols-outlined text-sm">edit_note</span>
-<span className="text-body-md">Scribe</span>
-</div>
-</td>
-<td className="px-6 py-4 text-body-md text-on-surface-variant">1h ago</td>
-<td className="px-6 py-4 text-right">
-<button className="material-symbols-outlined text-outline group-hover:text-primary">open_in_new</button>
-</td>
-</tr>
-<tr className="hover:bg-surface-container-low transition-colors group">
-<td className="px-6 py-4 font-mono-label font-bold text-primary">INC-4015</td>
-<td className="px-6 py-4">
-<span className="px-2 py-1 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded uppercase">Low</span>
-</td>
-<td className="px-6 py-4 text-body-md font-medium">Auto-Closed</td>
-<td className="px-6 py-4">
-<div className="flex items-center gap-2 text-tertiary">
-<span className="material-symbols-outlined text-sm">check_circle</span>
-<span className="text-body-md">System</span>
-</div>
-</td>
-<td className="px-6 py-4 text-body-md text-on-surface-variant">4h ago</td>
-<td className="px-6 py-4 text-right">
-<button className="material-symbols-outlined text-outline group-hover:text-primary">open_in_new</button>
-</td>
-</tr>
+{operationalData?.recent_incidents && operationalData.recent_incidents.length > 0 ? (
+  operationalData.recent_incidents.map((inc, idx) => (
+    <tr key={idx} className="hover:bg-surface-container-low transition-colors group">
+      <td className="px-6 py-4 font-mono-label font-bold text-primary">{inc.id}</td>
+      <td className="px-6 py-4">
+        {getSeverityBadge(inc.severity)}
+      </td>
+      <td className="px-6 py-4 text-body-md font-medium">{inc.status}</td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+          <span className={`material-symbols-outlined ${renderAgentColor(inc.assigned_to)} text-sm`}>{renderAgentIcon(inc.assigned_to)}</span>
+          <span className="text-body-md">{inc.assigned_to.replace('Agent', '')}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-body-md text-on-surface-variant">{new Date(inc.time).toLocaleTimeString()}</td>
+      <td className="px-6 py-4 text-right">
+        <button className="material-symbols-outlined text-outline group-hover:text-primary">open_in_new</button>
+      </td>
+    </tr>
+  ))
+) : (
+  <tr>
+    <td colSpan="6" className="px-6 py-8 text-center text-on-surface-variant font-medium">No recent incidents</td>
+  </tr>
+)}
 </tbody>
 </table>
 </div>
