@@ -3,7 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 import asyncio
+from collections import deque
 import subprocess
+
+# In-memory buffer to store the last 24 hours of metrics at 1-second resolution
+metrics_history = deque(maxlen=86400)
 import json
 import logging
 import time
@@ -219,11 +223,35 @@ async def websocket_logs(websocket: WebSocket):
                 "net_io": psutil.net_io_counters()._asdict() if psutil else {},
                 "latency_ms": 12 # Real latency to DB would be measured here, defaulting to a low number
             }
+            
+            # Store in history buffer with timestamp
+            metrics_history.append({"timestamp": time.time(), "metrics": metrics})
+            
             await websocket.send_json({"type": "SYSTEM_METRICS", "data": metrics})
             
             await asyncio.sleep(1)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+@app.get("/api/dashboard/metrics/history")
+def get_metrics_history(timeframe: str = "5m"):
+    """Return historical metrics based on timeframe."""
+    import time
+    now = time.time()
+    if timeframe == "5m":
+        cutoff = now - (5 * 60)
+    elif timeframe == "15m":
+        cutoff = now - (15 * 60)
+    elif timeframe == "1h":
+        cutoff = now - (60 * 60)
+    elif timeframe == "24h":
+        cutoff = now - (24 * 60 * 60)
+    else:
+        cutoff = now - (5 * 60)
+    
+    # Filter the deque
+    result = [m for m in metrics_history if m["timestamp"] >= cutoff]
+    return {"status": "success", "data": result}
 
 @app.post("/webhook/security-event")
 @limiter.limit("100/minute")

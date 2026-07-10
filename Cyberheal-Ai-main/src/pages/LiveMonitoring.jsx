@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLogs, useGlobalAgentState, useMonitorState, useOperationalDashboard, useSystemMetrics, exportReport } from '../api';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
-
+import RealTimeMonitoringGraph from '../components/dashboard/RealTimeMonitoringGraph';
 export default function LiveMonitoring() {
   const [showToast, setShowToast] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -208,46 +208,7 @@ export default function LiveMonitoring() {
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
 {/*  Real-Time Threat Map  */}
 <div className="lg:col-span-2 bento-card rounded-xxl overflow-hidden flex flex-col min-h-[400px]">
-<div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-surface/50">
-
-<div className="flex items-center gap-4">
-<div className="flex items-center gap-2">
-<span className="w-2 h-2 rounded-full bg-error"></span>
-
-</div>
-
-</div>
-</div>
-<div className="relative flex-1 bg-slate-50 overflow-hidden">
-{/*  Simulated Map with WebGL Placeholder  */}
-<div className="absolute inset-0 z-0">
-<img className="w-full h-full object-cover opacity-80" alt="A high-tech, professional line graph showing network traffic activity. The graph features multiple overlapping waves in shades of blue and cyan against a clean white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOSXWkkFawIbzh_1OFK_Z7bAvMR8Siv8CSRpV1ZgfFdt1LUjYH4hjSPHpzWyy_07IJWlvLPh_-JnT2qy0ev4cAapGQbHWKLzMwWTahtAnBw4-ltNYWTl-wNrRQSzSeqK7dMuYdK6FXXqyg29bomzoRfZp60pO3rPQj0YOyuFchCEfg-lH0kPTS_TqGgVh4xQ0tkvCv1a-ltuJeu4wUP2IILbH3K9g1GmfBf8xfVfbP9izVIM5V5P-n" />
-</div>
-{/*  UI Overlay on Map  */}
-<div className="absolute bottom-6 left-6 glass-panel p-4 rounded-xl border border-outline-variant shadow-lg z-10">
-<div className="text-label-md font-bold text-on-surface-variant uppercase mb-2">Top Attack Origins</div>
-<div className="space-y-2">
-{attackOrigins.length > 0 ? attackOrigins.map((origin, idx) => (
-<div key={idx} className="flex justify-between gap-8 items-center">
-<span className="text-body-md font-medium">{origin.ip}</span>
-<span className="text-body-md font-mono-label text-error">{origin.count}</span>
-</div>
-)) : (
-<div className="flex justify-between gap-8 items-center">
-<span className="text-body-md font-medium text-on-surface-variant">No active threats</span>
-</div>
-)}
-</div>
-<div className="flex justify-between gap-8 items-center">
-<span className="text-body-md font-medium">Shenzhen, CN</span>
-<span className="text-body-md font-mono-label text-error">2,840</span>
-</div>
-<div className="flex justify-between gap-8 items-center">
-<span className="text-body-md font-medium">Ashburn, US</span>
-<span className="text-body-md font-mono-label text-error">1,902</span>
-</div>
-</div>
-</div>
+  <RealTimeMonitoringGraph />
 </div>
 </div>
 {/*  Live Security Event Feed  */}
