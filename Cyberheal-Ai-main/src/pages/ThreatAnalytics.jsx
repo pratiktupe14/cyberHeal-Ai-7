@@ -14,6 +14,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import { useAnalyticsData, executeAutomatedResponse, exportReport } from '../api';
 
 ChartJS.register(
   CategoryScale,
@@ -30,14 +31,20 @@ ChartJS.register(
 
 export default function ThreatAnalytics() {
   const [showToast, setShowToast] = useState(false);
+  const [timeframe, setTimeframe] = useState('30d');
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  const { analyticsData } = useAnalyticsData(timeframe);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (analyticsData) {
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 5000);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+      const timer = setTimeout(() => setShowToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [analyticsData, timeframe]);
 
   const colors = {
     primary: '#004ac6',
@@ -48,46 +55,72 @@ export default function ThreatAnalytics() {
     outline: '#c3c6d7'
   };
 
+  const handleExecute = async () => {
+    setIsExecuting(true);
+    try {
+      await executeAutomatedResponse();
+    } catch (e) {
+      console.error(e);
+    }
+    setTimeout(() => setIsExecuting(false), 2000);
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportReport('pdf');
+    } catch(err) {
+      console.error(err);
+    }
+    setIsExporting(false);
+  };
+
+  const handleTimeframeChange = (val) => {
+    setTimeframe(val);
+    setShowFilterDropdown(false);
+  };
+
+  const getTimeframeLabel = () => {
+    switch(timeframe) {
+      case 'today': return 'Today';
+      case '24h': return 'Last 24 Hours';
+      case '7d': return 'Last 7 Days';
+      case '30d': return 'Last 30 Days';
+      default: return 'Last 30 Days';
+    }
+  };
+
+  const isEmpty = !analyticsData || analyticsData.threat_analytics.total_historical_incidents === 0;
+
   const lineData = {
-    labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
-    datasets: [{
-        label: 'Ransomware',
-        data: [12, 19, 15, 25, 22, 30, 24, 28],
-        borderColor: colors.primary,
-        backgroundColor: 'rgba(0, 74, 198, 0.1)',
+    labels: analyticsData?.threat_analytics?.threats_over_time?.labels || [],
+    datasets: (analyticsData?.threat_analytics?.threats_over_time?.datasets || []).map((ds, idx) => ({
+        ...ds,
+        borderColor: idx === 0 ? colors.primary : (idx === 1 ? colors.secondary : colors.tertiary),
+        backgroundColor: idx === 0 ? 'rgba(0, 74, 198, 0.1)' : 'rgba(0, 104, 122, 0.1)',
         fill: true,
         tension: 0.4,
         borderWidth: 3,
         pointRadius: 4,
         pointHoverRadius: 6
-    }, {
-        label: 'Phishing',
-        data: [45, 52, 38, 48, 60, 55, 42, 50],
-        borderColor: colors.secondary,
-        backgroundColor: 'rgba(0, 104, 122, 0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 3,
-        pointRadius: 4,
-        pointHoverRadius: 6
-    }]
+    }))
   };
 
   const pieData = {
-    labels: ['Critical', 'High', 'Medium', 'Low'],
+    labels: ['Critical', 'High', 'Medium', 'Low', 'Informational'],
     datasets: [{
-        data: [12, 28, 45, 15],
-        backgroundColor: [colors.error, colors.primary, colors.secondary, colors.outline],
+        data: analyticsData?.threat_analytics?.severity_distribution || [0,0,0,0,0],
+        backgroundColor: [colors.error, colors.primary, colors.secondary, colors.outline, '#e2e8f0'],
         borderWidth: 0,
         hoverOffset: 10
     }]
   };
 
   const barData = {
-    labels: ['DDoS', 'Malware', 'Social Eng.', 'MITM', 'Zero Day', 'Credential Stuffing'],
+    labels: analyticsData?.threat_analytics?.threats_over_time?.datasets?.map(d => d.label) || [],
     datasets: [{
         label: 'Incidents',
-        data: [120, 190, 85, 45, 15, 110],
+        data: analyticsData?.threat_analytics?.threats_over_time?.datasets?.map(d => d.data.reduce((a,b)=>a+b,0)) || [],
         backgroundColor: [
             '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb'
         ],
@@ -115,6 +148,13 @@ export default function ThreatAnalytics() {
     cutout: '70%'
   };
 
+  const renderEmptyState = (height = "h-[300px]") => (
+    <div className={`${height} flex flex-col items-center justify-center text-on-surface-variant`}>
+      <span className="material-symbols-outlined text-[48px] mb-2 opacity-50" data-icon="query_stats">query_stats</span>
+      <p className="text-body-lg font-medium">No analytics data available.</p>
+    </div>
+  );
+
   return (
     <EnterpriseLayout>
       <main className="p-margin-mobile md:p-margin-desktop space-y-stack-lg max-w-[1440px]">
@@ -124,13 +164,31 @@ export default function ThreatAnalytics() {
             <h2 className="font-headline-lg text-headline-lg text-on-surface">Threat Analytics</h2>
             <p className="text-body-lg text-on-surface-variant mt-2">Real-time vector analysis and predictive anomaly detection across enterprise nodes.</p>
           </div>
-          <div className="flex items-center gap-stack-sm">
-            <button className="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg flex items-center gap-2 text-body-md font-medium hover:bg-surface-container transition-all">
+          <div className="flex items-center gap-stack-sm relative">
+            <button 
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg flex items-center gap-2 text-body-md font-medium hover:bg-surface-container transition-all"
+            >
               <span className="material-symbols-outlined text-[20px]" data-icon="calendar_today">calendar_today</span>
-              Last 30 Days
+              {getTimeframeLabel()}
+              <span className="material-symbols-outlined text-[20px]" data-icon="arrow_drop_down">arrow_drop_down</span>
             </button>
-            <button className="px-4 py-2 bg-primary text-on-primary rounded-lg flex items-center gap-2 text-body-md font-medium shadow-sm hover:translate-y-[-1px] transition-all active:scale-95">
-              <span className="material-symbols-outlined text-[20px]" data-icon="file_download">file_download</span>
+            
+            {showFilterDropdown && (
+              <div className="absolute top-12 left-0 w-full bg-surface border border-outline-variant rounded-lg shadow-lg z-50 overflow-hidden">
+                <button onClick={() => handleTimeframeChange('today')} className="w-full text-left px-4 py-2 hover:bg-surface-container text-body-md">Today</button>
+                <button onClick={() => handleTimeframeChange('24h')} className="w-full text-left px-4 py-2 hover:bg-surface-container text-body-md">Last 24 Hours</button>
+                <button onClick={() => handleTimeframeChange('7d')} className="w-full text-left px-4 py-2 hover:bg-surface-container text-body-md">Last 7 Days</button>
+                <button onClick={() => handleTimeframeChange('30d')} className="w-full text-left px-4 py-2 hover:bg-surface-container text-body-md">Last 30 Days</button>
+              </div>
+            )}
+
+            <button 
+                onClick={handleExport}
+                disabled={isExporting}
+                className="px-4 py-2 bg-primary text-on-primary rounded-lg flex items-center gap-2 text-body-md font-medium shadow-sm hover:translate-y-[-1px] transition-all active:scale-95 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[20px]" data-icon="file_download">{isExporting ? 'hourglass_empty' : 'file_download'}</span>
               Export Report
             </button>
           </div>
@@ -144,13 +202,15 @@ export default function ThreatAnalytics() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-label-md text-on-surface-variant font-medium">Detection Accuracy</p>
-                <h3 className="text-display-lg font-display-lg text-primary mt-2">99.8%</h3>
+                <h3 className="text-display-lg font-display-lg text-primary mt-2">
+                    {!analyticsData ? '--' : `${analyticsData.ai_performance.detection_accuracy}%`}
+                </h3>
               </div>
               <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg" data-icon="target">target</span>
             </div>
             <div className="mt-4 flex items-center gap-2 text-label-md text-tertiary">
-              <span className="material-symbols-outlined text-[16px]" data-icon="trending_up">trending_up</span>
-              <span>+0.2% vs last week</span>
+              <span className="material-symbols-outlined text-[16px]" data-icon="update">update</span>
+              <span>Based on true positive rate</span>
             </div>
           </div>
 
@@ -160,13 +220,16 @@ export default function ThreatAnalytics() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-label-md text-on-surface-variant font-medium">Mean Response Time</p>
-                <h3 className="text-display-lg font-display-lg text-secondary mt-2">12.4<span className="text-headline-sm font-medium">min</span></h3>
+                <h3 className="text-display-lg font-display-lg text-secondary mt-2">
+                    {!analyticsData ? '--' : analyticsData.ai_performance.mean_response_time_min}
+                    <span className="text-headline-sm font-medium">min</span>
+                </h3>
               </div>
               <span className="material-symbols-outlined text-secondary bg-secondary/10 p-2 rounded-lg" data-icon="timer">timer</span>
             </div>
             <div className="mt-4 flex items-center gap-2 text-label-md text-tertiary">
-              <span className="material-symbols-outlined text-[16px]" data-icon="trending_down">trending_down</span>
-              <span>-4min faster than baseline</span>
+              <span className="material-symbols-outlined text-[16px]" data-icon="update">update</span>
+              <span>Average incident resolution time</span>
             </div>
           </div>
 
@@ -176,7 +239,9 @@ export default function ThreatAnalytics() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-label-md text-on-surface-variant font-medium">False Positive Rate</p>
-                <h3 className="text-display-lg font-display-lg text-error mt-2">1.02%</h3>
+                <h3 className="text-display-lg font-display-lg text-error mt-2">
+                    {!analyticsData ? '--' : `${analyticsData.ai_performance.false_positive_rate}%`}
+                </h3>
               </div>
               <span className="material-symbols-outlined text-error bg-error/10 p-2 rounded-lg" data-icon="error_outline">error_outline</span>
             </div>
@@ -192,13 +257,15 @@ export default function ThreatAnalytics() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-label-md text-on-surface-variant font-medium">AI Agents Active</p>
-                <h3 className="text-display-lg font-display-lg text-tertiary mt-2">4,821</h3>
+                <h3 className="text-display-lg font-display-lg text-tertiary mt-2">
+                    {!analyticsData ? '--' : analyticsData.threat_analytics.active_incidents}
+                </h3>
               </div>
               <span className="material-symbols-outlined text-tertiary bg-tertiary/10 p-2 rounded-lg" data-icon="smart_toy">smart_toy</span>
             </div>
             <div className="mt-4 flex items-center gap-2 text-label-md text-tertiary">
               <span className="material-symbols-outlined text-[16px]" data-icon="trending_up">trending_up</span>
-              <span>+12 new nodes added</span>
+              <span>Live active workflows</span>
             </div>
           </div>
         </div>
@@ -213,17 +280,18 @@ export default function ThreatAnalytics() {
                 <p className="text-body-md text-on-surface-variant">Aggregated incident frequency across all channels.</p>
               </div>
               <div className="flex gap-2">
-                <span className="inline-flex items-center gap-2 text-label-md text-on-surface-variant">
-                  <span className="w-3 h-3 rounded-full bg-primary"></span> Ransomware
-                </span>
-                <span className="inline-flex items-center gap-2 text-label-md text-on-surface-variant">
-                  <span className="w-3 h-3 rounded-full bg-secondary"></span> Phishing
-                </span>
+                {analyticsData?.threat_analytics?.threats_over_time?.datasets?.map((ds, idx) => (
+                    <span key={ds.label} className="inline-flex items-center gap-2 text-label-md text-on-surface-variant">
+                      <span className={`w-3 h-3 rounded-full`} style={{backgroundColor: idx === 0 ? colors.primary : (idx === 1 ? colors.secondary : colors.tertiary)}}></span> {ds.label}
+                    </span>
+                ))}
               </div>
             </div>
-            <div className="h-[300px]">
-              <Line data={lineData} options={xyOptions} />
-            </div>
+            {isEmpty ? renderEmptyState("h-[300px]") : (
+                <div className="h-[300px]">
+                  <Line data={lineData} options={xyOptions} />
+                </div>
+            )}
           </div>
 
           {/* AI Insight Panel */}
@@ -233,38 +301,56 @@ export default function ThreatAnalytics() {
                 <span className="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
                 <span className="font-headline-sm text-headline-sm">AI Pulse Insights</span>
               </div>
-              <p className="text-body-md text-on-surface-variant leading-relaxed">
-                Anomalous traffic detected in <span className="font-bold text-on-surface">Cluster 7-Beta</span>. Pattern correlates with historical Zero-Day attempts in the Q3 window. 
-              </p>
-              <div className="mt-4 p-3 bg-secondary/5 rounded-lg border border-secondary/10">
-                <p className="text-label-md font-bold text-secondary">RECOMMENDATION</p>
-                <p className="text-body-md mt-1 italic">"Initiate sandbox isolation for all incoming API calls from Regional Node AX-4."</p>
-              </div>
-              <button className="mt-6 w-full py-2 bg-secondary text-on-secondary rounded-lg font-medium text-body-md hover:bg-on-secondary-container transition-all">
-                Execute Automated Response
+              
+              {isEmpty ? (
+                <p className="text-body-md text-on-surface-variant leading-relaxed">No AI insights available.</p>
+              ) : (
+                <>
+                    <p className="text-body-md text-on-surface-variant leading-relaxed">
+                      {analyticsData.threat_analytics.insights}
+                    </p>
+                    {analyticsData.threat_analytics.most_common_threat && (
+                        <div className="mt-4 p-3 bg-secondary/5 rounded-lg border border-secondary/10">
+                          <p className="text-label-md font-bold text-secondary">PRIMARY VECTOR</p>
+                          <p className="text-body-md mt-1 italic">"{analyticsData.threat_analytics.most_common_threat}"</p>
+                        </div>
+                    )}
+                </>
+              )}
+              
+              <button 
+                onClick={handleExecute}
+                disabled={isExecuting}
+                className="mt-6 w-full py-2 bg-secondary text-on-secondary rounded-lg font-medium text-body-md hover:bg-on-secondary-container transition-all disabled:opacity-50"
+              >
+                {isExecuting ? 'Executing Workflow...' : 'Execute Automated Response'}
               </button>
             </div>
 
             {/* Small Severity Pie Chart */}
             <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-[#F1F5F9]">
               <h4 className="font-headline-sm text-headline-sm text-on-surface mb-4">Severity Distribution</h4>
-              <div className="h-[180px] flex items-center justify-center">
-                <Doughnut data={pieData} options={pieOptions} />
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2 text-label-md">
-                  <span className="w-2 h-2 rounded-full bg-error"></span> Critical (12%)
-                </div>
-                <div className="flex items-center gap-2 text-label-md">
-                  <span className="w-2 h-2 rounded-full bg-primary"></span> High (28%)
-                </div>
-                <div className="flex items-center gap-2 text-label-md">
-                  <span className="w-2 h-2 rounded-full bg-secondary"></span> Medium (45%)
-                </div>
-                <div className="flex items-center gap-2 text-label-md">
-                  <span className="w-2 h-2 rounded-full bg-outline-variant"></span> Low (15%)
-                </div>
-              </div>
+              {isEmpty ? renderEmptyState("h-[180px]") : (
+                  <>
+                      <div className="h-[180px] flex items-center justify-center">
+                        <Doughnut data={pieData} options={pieOptions} />
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {['Critical', 'High', 'Medium', 'Low', 'Informational'].map((lbl, idx) => {
+                            const val = pieData.datasets[0].data[idx];
+                            const total = pieData.datasets[0].data.reduce((a,b)=>a+b,0);
+                            const perc = total > 0 ? Math.round((val/total)*100) : 0;
+                            const bg = [colors.error, colors.primary, colors.secondary, colors.outline, '#e2e8f0'][idx];
+                            if(val === 0) return null;
+                            return (
+                                <div key={lbl} className="flex items-center gap-2 text-label-md">
+                                  <span className="w-2 h-2 rounded-full" style={{backgroundColor: bg}}></span> {lbl} ({perc}%)
+                                </div>
+                            );
+                        })}
+                      </div>
+                  </>
+              )}
             </div>
           </div>
         </div>
@@ -272,56 +358,15 @@ export default function ThreatAnalytics() {
         {/* Bottom Row Charts */}
         <div className="grid grid-cols-12 gap-gutter">
           {/* Threats by Attack Type (Bar) */}
-          <div className="col-span-12 lg:col-span-7 bg-surface-container-lowest p-stack-lg rounded-xl shadow-sm border border-[#F1F5F9]">
+          <div className="col-span-12 bg-surface-container-lowest p-stack-lg rounded-xl shadow-sm border border-[#F1F5F9]">
             <div className="flex justify-between items-center mb-6">
               <h4 className="font-headline-sm text-headline-sm text-on-surface">Common Attack Vectors</h4>
-              <button className="text-primary text-label-md font-bold hover:underline">View All vectors</button>
             </div>
-            <div className="h-[240px]">
-              <Bar data={barData} options={xyOptions} />
-            </div>
-          </div>
-
-          {/* Recent Alerts List */}
-          <div className="col-span-12 lg:col-span-5 bg-surface-container-lowest p-stack-lg rounded-xl shadow-sm border border-[#F1F5F9]">
-            <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6">Live Threat Feed</h4>
-            <div className="space-y-4 max-h-[240px] overflow-y-auto pr-2">
-              <div className="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30 hover:border-primary/50 transition-all cursor-pointer">
-                <div className="w-2 h-2 rounded-full bg-error animate-pulse"></div>
-                <div className="flex-grow">
-                  <p className="text-body-md font-bold">Brute-force SSH Attempt</p>
-                  <p className="text-label-md text-on-surface-variant">IP: 192.168.1.104 • Just now</p>
+            {isEmpty ? renderEmptyState("h-[240px]") : (
+                <div className="h-[240px]">
+                  <Bar data={barData} options={xyOptions} />
                 </div>
-                <span className="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
-              </div>
-
-              <div className="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30">
-                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                <div className="flex-grow">
-                  <p className="text-body-md font-bold">SQL Injection Blocked</p>
-                  <p className="text-label-md text-on-surface-variant">Main Database Cluster • 4m ago</p>
-                </div>
-                <span className="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
-              </div>
-
-              <div className="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30">
-                <div className="w-2 h-2 rounded-full bg-secondary"></div>
-                <div className="flex-grow">
-                  <p className="text-body-md font-bold">Unusual Geo-login</p>
-                  <p className="text-label-md text-on-surface-variant">User: j_smith_dev • 12m ago</p>
-                </div>
-                <span className="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
-              </div>
-
-              <div className="flex items-center gap-4 p-3 bg-surface rounded-lg border border-outline-variant/30">
-                <div className="w-2 h-2 rounded-full bg-outline-variant"></div>
-                <div className="flex-grow">
-                  <p className="text-body-md font-bold">API Rate Limit Warning</p>
-                  <p className="text-label-md text-on-surface-variant">External API Gateway • 28m ago</p>
-                </div>
-                <span className="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </main>
@@ -337,7 +382,7 @@ export default function ThreatAnalytics() {
         </div>
         <div>
           <p className="font-bold text-body-md">Dashboard Synchronized</p>
-          <p className="text-label-md text-on-surface-variant">All threat vectors are up to date.</p>
+          <p className="text-label-md text-on-surface-variant">Analytics fetched successfully.</p>
         </div>
         <button className="ml-4 text-on-surface-variant hover:text-primary" onClick={() => setShowToast(false)}>
           <span className="material-symbols-outlined text-[20px]" data-icon="close">close</span>

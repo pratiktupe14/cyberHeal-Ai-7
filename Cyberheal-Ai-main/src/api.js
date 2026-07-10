@@ -206,12 +206,12 @@ export const searchMemory = async (query) => {
   return [];
 };
 
-export function useAnalyticsData() {
+export function useAnalyticsData(timeframe = '30d') {
   const [analyticsData, setAnalyticsData] = useState(null);
 
   useEffect(() => {
     const fetchState = () => {
-      axios.get(`${API_BASE_URL}/api/agents/analytics/dashboard`)
+      axios.get(`${API_BASE_URL}/api/agents/analytics/dashboard?timeframe=${timeframe}`)
         .then(res => {
           if (res.data && res.data.data) setAnalyticsData(res.data.data);
         })
@@ -221,10 +221,20 @@ export function useAnalyticsData() {
     fetchState();
     const interval = setInterval(fetchState, 10000); // Fetch every 10s
     return () => clearInterval(interval);
-  }, []);
+  }, [timeframe]);
 
   return { analyticsData };
 }
+
+export const executeAutomatedResponse = async () => {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/agents/analytics/execute`);
+    return res.data;
+  } catch (err) {
+    console.error("Error executing automated response:", err);
+    throw err;
+  }
+};
 
 export function useReportState() {
   const [reportState, setReportState] = useState(null);

@@ -342,8 +342,15 @@ def search_memory(query: str):
     return {"status": "success", "data": results}
 
 @app.get("/api/agents/analytics/dashboard")
-def get_analytics_dashboard():
-    return {"status": "success", "data": analytics_agent.generate_dashboard_metrics()}
+def get_analytics_dashboard(timeframe: str = "30d", db: Session = Depends(database.get_db)):
+    return {"status": "success", "data": analytics_agent.generate_dashboard_metrics(db, timeframe)}
+
+@app.post("/api/agents/analytics/execute")
+def execute_automated_response(background_tasks: BackgroundTasks):
+    import uuid
+    incident_id = f"manual-{str(uuid.uuid4())[:8]}"
+    background_tasks.add_task(commander_agent.execute_plan, incident_id)
+    return {"status": "success", "message": "Automated response workflow initiated", "incident_id": incident_id}
 
 @app.get("/api/agents/notification/status")
 def get_notification_status():
@@ -477,7 +484,7 @@ def get_global_status():
     agents_data = [
         {"id": "intake", "name": "Intake", "role": "Data Ingestion", "status": "Active" if len(intake_agent.stored_events) > 0 else "Idle", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "input"},
         {"id": "sentinel", "name": "Sentinel", "role": "Threat Detection", "status": "Active (24x7)", "success_rate": 99.8, "last_execution": "Live", "health": "Healthy", "icon": "security"},
-        {"id": "threat_intel", "name": "Threat Intel", "role": "Enrichment", "status": is_executing("ThreatIntelAgent"), "success_rate": 98.5, "last_execution": "Live" if threat_intel_agent.enrichment_stats["threats_processed"] > 0 else "Idle", "health": "Healthy", "icon": "troubleshoot"},
+        {"id": "threat_intel", "name": "Threat Intel", "role": "Enrichment", "status": is_executing("ThreatIntelAgent"), "success_rate": 98.5, "last_execution": "Live" if threat_intel_agent.enrichment_stats.get("threats_processed", 0) > 0 else "Idle", "health": "Healthy", "icon": "troubleshoot"},
         {"id": "issue_detector", "name": "Issue Detector", "role": "Classification", "status": is_executing("IssueDetectorAgent"), "success_rate": 99.1, "last_execution": "Live" if issue_detector_agent.metrics["issues_classified"] > 0 else "Idle", "health": "Healthy", "icon": "bug_report"},
         {"id": "commander", "name": "Commander", "role": "Orchestrator AI", "status": "Active" if commander_agent.active_workflows else "Idle", "success_rate": 100.0, "last_execution": "Live", "health": "Healthy", "icon": "account_tree"},
         {"id": "diagnosis", "name": "Diagnosis", "role": "Deep Inspection", "status": is_executing("DiagnosisAgent"), "success_rate": 96.4, "last_execution": "Live" if diagnosis_agent.metrics["diagnoses_completed"] > 0 else "Idle", "health": "Healthy", "icon": "search"},
