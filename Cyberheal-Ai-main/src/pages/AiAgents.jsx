@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import EnterpriseLayout from '../components/layout/EnterpriseLayout';
 import { useGlobalAgentState, useScribeState, useSystemMetrics } from '../api';
 
@@ -98,14 +98,14 @@ export default function AiAgents() {
                     
                     return (
                       <React.Fragment key={step}>
-                        <div className={lex flex-col items-center gap-2 }>
-                          <div className={w-12 h-12 rounded-full flex items-center justify-center text-label-md font-bold }>
+                        <div className={`flex flex-col items-center gap-2 ${isLive ? 'opacity-100' : 'opacity-40'}`}>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-label-md font-bold ${isLive ? 'bg-primary text-white shadow-glow' : 'bg-surface-container text-on-surface-variant'}`}>
                             {step[0]}
                           </div>
-                          <span className={	ext-label-md }>{step}</span>
+                          <span className="text-label-md">{step}</span>
                         </div>
                         {idx < 7 && (
-                          <div className={w-8 h-0.5 }></div>
+                          <div className={`w-8 h-0.5 ${isLive ? 'bg-primary' : 'bg-surface-container'}`}></div>
                         )}
                       </React.Fragment>
                     );
@@ -155,14 +155,14 @@ export default function AiAgents() {
                         <tr key={idx} className="hover:bg-surface-container-low transition-colors group">
                           <td className="px-stack-lg py-4 border-b border-outline-variant/10 font-bold">{agent.name.replace('Agent', '')}</td>
                           <td className="px-stack-lg py-4 border-b border-outline-variant/10">
-                            <span className={lex items-center gap-2 font-bold }>
-                              <span className={w-2 h-2 rounded-full }></span>
+                            <span className={`flex items-center gap-2 font-bold ${statusColor}`}>
+                              <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
                               {agent.status}
                             </span>
                           </td>
                           <td className="px-stack-lg py-4 border-b border-outline-variant/10">
                             <div className="w-full bg-outline-variant/20 h-1.5 rounded-full overflow-hidden">
-                              <div className="bg-emerald-500 h-full" style={{ width: \\%\ }}></div>
+                              <div className="bg-emerald-500 h-full" style={{ width: `${eff}%` }}></div>
                             </div>
                           </td>
                           <td className="px-stack-lg py-4 border-b border-outline-variant/10 text-on-surface-variant">{agent.current_task || 'Ready'}</td>
@@ -270,7 +270,7 @@ export default function AiAgents() {
             </div>
             <div className="h-24 w-full flex items-end gap-1 px-1">
               {[60, 55, 70, 45, 50, 65, 80, 75, 90, 85, 95, 82].map((h, i) => (
-                <div key={i} className={lex-1 bg-primary rounded-t-sm transition-all duration-300 hover:bg-primary-fixed hover:h-[100%]} style={{ height: \\%\ }}></div>
+                <div key={i} className="flex-1 bg-primary rounded-t-sm transition-all duration-300 hover:bg-primary-fixed hover:h-[100%]" style={{ height: `${h}%` }}></div>
               ))}
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function AiAgents() {
             </div>
             <div className="h-24 w-full flex items-end gap-1 px-1">
               {[80, 85, 82, 88, 90, 92, 85, 94, 96, 98, 100, 99].map((h, i) => (
-                <div key={i} className={lex-1 bg-tertiary rounded-t-sm transition-all duration-300 hover:bg-tertiary-fixed hover:h-[100%]} style={{ height: \\%\ }}></div>
+                <div key={i} className="flex-1 bg-tertiary rounded-t-sm transition-all duration-300 hover:bg-tertiary-fixed hover:h-[100%]" style={{ height: `${h}%` }}></div>
               ))}
             </div>
           </div>

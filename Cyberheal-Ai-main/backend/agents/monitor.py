@@ -4,6 +4,7 @@ import asyncio
 import json
 from database import SessionLocal
 import models
+import logging
 
 logger = logging.getLogger(__name__)
 

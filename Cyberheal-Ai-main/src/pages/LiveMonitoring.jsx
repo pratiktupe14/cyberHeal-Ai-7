@@ -529,9 +529,8 @@ export default function LiveMonitoring() {
 </div>
 </div>
 </div>
-
-      </div>
       
+
       {/* Toast Notification */}
       <div 
         className={`fixed bottom-8 right-8 z-[100] transform transition-all duration-500 ${showToast ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}
